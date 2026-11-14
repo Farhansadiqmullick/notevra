@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Tauri's core defaults, updates, opening the browser for Google sign-in, and the notevra:// link back.",
+  "windows": ["main"],
+  "permissions": ["core:default", "updater:default", "process:allow-restart", "deep-link:default", "opener:default"]
+}

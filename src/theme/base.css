@@ -1,0 +1,138 @@
+/* base.css — minimal global reset + document defaults. Imported once in main.ts,
+ * after tokens.css so it can use the semantic variables. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  block-size: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui), system-ui, -apple-system, sans-serif;
+  background: var(--page);
+  color: var(--ink-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button {
+  font-family: inherit;
+}
+
+/*
+ * Touch targets (design/ui-test-plan.md §A).
+ *
+ * WCAG 2.5.5 and the iOS HIG both want 44×44 CSS px. The design's controls are deliberately smaller
+ * than that — an 18px checkbox is right under a mouse and unhittable with a thumb — so the HIT area
+ * grows while the drawn control does not: an absolutely positioned ::after that changes no layout
+ * and moves nothing on screen.
+ *
+ * Keyed on POINTER TYPE, not width. A touch tablet needs this at 834px; a desktop window dragged
+ * narrow does not, and there an invisible 44px box would start swallowing clicks meant for the
+ * controls beside it.
+ */
+@media (pointer: coarse) {
+  .tap-target {
+    position: relative;
+  }
+  .tap-target::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    translate: -50% -50%;
+    inline-size: max(100%, 44px);
+    block-size: max(100%, 44px);
+  }
+}
+
+/* ===========================================================================
+ * .notice — the notification bar.
+ *
+ * A CLASS, not only a component, because the same bar has two jobs: NoticeHost
+ * floats it as a transient toast ("Moved to Archive"), and a form or dialog can
+ * drop one inline to explain a state that isn't going anywhere. Both want the
+ * identical shape and the identical colour meaning; only the positioning differs,
+ * and positioning is the caller's business.
+ *
+ * Three variants, and `.notice` on its own IS the info one — a message with no
+ * stated severity is information, so the default never has to be spelled out.
+ *
+ * Every variant is a LIGHT TINT with the deep shade of the same hue for text:
+ * a saturated fill would make a routine "task moved" shout as loudly as a
+ * failure, and the tints are already what chips and the snooze bar use, so a
+ * notice reads as part of the app rather than as something bolted on top. In
+ * dark mode the same four tokens go translucent (tokens.css §4), which keeps the
+ * fill light *relative to its surface* instead of turning into a white slab.
+ * ======================================================================== */
+.notice {
+  /* defaults = info; a variant class swaps the four values and nothing else */
+  --notice-fill: var(--info-tint);
+  --notice-edge: var(--info-tint-border);
+  --notice-ink: var(--info-deep);
+  --notice-dot: var(--info);
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--notice-edge);
+  border-radius: var(--r-item);
+  background: var(--notice-fill);
+  color: var(--notice-ink);
+  font: 600 12.5px/1.45 var(--font-ui), system-ui, sans-serif;
+}
+
+.notice--warning {
+  --notice-fill: var(--warn-tint);
+  --notice-edge: var(--warn-tint-border);
+  --notice-ink: var(--warn-deep);
+  --notice-dot: var(--warn);
+}
+
+.notice--danger {
+  --notice-fill: var(--danger-tint);
+  --notice-edge: var(--danger-tint-border);
+  --notice-ink: var(--danger-deep);
+  --notice-dot: var(--danger);
+}
+
+/* the dot carries the hue at full strength — the one saturated thing on the bar,
+   so the variant is still distinguishable without relying on the tint alone */
+.notice__dot {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--notice-dot);
+}
+
+.notice__text {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.notice__close {
+  flex: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--r-row);
+  padding: 4px 6px;
+  margin: -4px -4px -4px 0;
+  color: inherit;
+  opacity: 0.6;
+  font: inherit;
+  line-height: 1;
+}
+.notice__close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--notice-dot) 16%, transparent);
+}

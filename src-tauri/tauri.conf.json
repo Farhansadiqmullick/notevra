@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Notevra",
+  "version": "../package.json",
+  "identifier": "trade.farhanmullick.notevra",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Notevra",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 380,
+        "minHeight": 560,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost https://xkarfcsghyfvvawmclkd.supabase.co https://vimeo.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.dailymotion.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'",
+      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost ws://localhost:5173 http://localhost:5173 http://127.0.0.1:54321 https://xkarfcsghyfvvawmclkd.supabase.co https://vimeo.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.dailymotion.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": { "schemes": ["notevra"] }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVEOUQ3NDkzMzUzRkUxQjIKUldTeTRUODFrM1NkN2ZwRktvT0NocmgwaFNKaDlwUHpZUmg5RnBzM3VhUk9HNFJLaWRlWTlXaEoK",
+      "endpoints": [
+        "https://github.com/Farhansadiqmullick/notevra-releases/releases/latest/download/latest.json"
+      ],
+      "allowDowngrades": true,
+      "windows": { "installMode": "passive" }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": ["app", "dmg", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" }
+    }
+  }
+}

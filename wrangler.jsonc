@@ -1,0 +1,48 @@
+{
+  // Cloudflare Pages settings, in the repo rather than only in the dashboard, so a deploy is
+  // reproducible from a clean clone and changing how the site is built arrives as a reviewable diff.
+  // With this present, `wrangler pages deploy` needs no flags.
+  //
+  // JSONC rather than TOML on Cloudflare's current guidance: newer config features ship JSON-only,
+  // and this is the format to be on if the project ever grows Pages Functions.
+  //
+  // ---------------------------------------------------------------------------------------------
+  // LIVE AT: https://blocnote.farhanmullick.trade
+  //
+  // That domain is NOT configurable from this file, and there is no CLI flag for it either —
+  // `wrangler pages deploy` takes only --project-name, --branch and commit metadata. A Pages custom
+  // domain is attached ONCE in the dashboard (Workers & Pages → blocnote → Custom domains → Set up
+  // a domain), and from then on every deploy to the production branch is served on it. It is
+  // recorded here because the repo should say where it ships to, not because wrangler reads it.
+  //
+  // Two things that make this fail and look like a DNS fault when it isn't:
+  //
+  //   1. The dashboard association must come FIRST. Creating the CNAME by hand before adding the
+  //      domain in Pages means it never resolves. (farhanmullick.trade is already a Cloudflare
+  //      zone, so the CNAME is created automatically — there is nothing to add by hand.)
+  //
+  //   2. Custom domains serve the PRODUCTION branch only. `wrangler pages deploy` defaults to the
+  //      current git branch, so deploying from a feature branch publishes a preview URL and the
+  //      custom domain keeps showing the previous release. Hence --production-branch below.
+  //
+  // STATUS: deployed, and the custom domain is attached. The dashboard step below is DONE and is
+  // not repeated — from here on, shipping is `npm run deploy` and nothing else.
+  //
+  // First run, once (kept for a fresh account or a rebuilt project, not for day-to-day use):
+  //   npx wrangler pages project create blocnote --production-branch main
+  //   npm run deploy
+  //   then attach the domain in Workers & Pages → blocnote → Custom domains
+  // ---------------------------------------------------------------------------------------------
+  //
+  // NOT here, on purpose: the redirect and cache rules. Those live in public/_redirects and
+  // public/_headers, which Pages reads straight out of the published directory — one copy, in the
+  // format the host actually parses, and nothing to migrate if the host ever changes.
+  //
+  // The Node version comes from .nvmrc, which the Pages build image reads.
+  "name": "blocnote",
+  "pages_build_output_dir": "dist",
+
+  // Only consulted if this project grows Pages Functions (an API without leaving Cloudflare).
+  // Harmless for a purely static build, and it pins runtime behaviour if that day comes.
+  "compatibility_date": "2026-08-23"
+}

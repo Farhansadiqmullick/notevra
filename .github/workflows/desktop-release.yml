@@ -1,0 +1,178 @@
+# Builds Notevra.dmg (macOS) and Notevra-windows-setup.exe on every push to main whose
+# package.json version has no release yet, and publishes them to the public releases repo.
+# Setup and day-to-day use: DESKTOP_RELEASES.md
+name: Desktop release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+env:
+  RELEASES_REPO: Farhansadiqmullick/notevra-releases
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.exists.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # a version that already has a release is skipped, so only a version bump ships
+      - id: exists
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" --repo "$RELEASES_REPO" > /dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::v${{ steps.version.outputs.version }} is already released. Bump the version in package.json to ship a new one."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.exists.outputs.publish == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # an unset key would ship apps that can never verify, and so never install, an update
+      - if: steps.exists.outputs.publish == 'true'
+        run: |
+          if grep -q REPLACE_WITH_UPDATER_PUBLIC_KEY src-tauri/tauri.conf.json; then
+            echo "::error::Set plugins.updater.pubkey in src-tauri/tauri.conf.json first. See DESKTOP_RELEASES.md."
+            exit 1
+          fi
+
+      - if: steps.exists.outputs.publish == 'true'
+        run: npm ci && npm test
+
+  build:
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            args: --target universal-apple-darwin --bundles app,dmg
+            bundle: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            asset: Notevra-mac.dmg
+            updater: src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
+            updater-asset: Notevra-mac.app.tar.gz
+          - os: windows-latest
+            rust-targets: ''
+            args: --bundles nsis
+            bundle: src-tauri/target/release/bundle/nsis/*-setup.exe
+            asset: Notevra-windows-setup.exe
+            # the setup .exe doubles as the Windows update package
+            updater: src-tauri/target/release/bundle/nsis/*-setup.exe
+            updater-asset: Notevra-windows-setup.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # VITE_ values are baked into the bundle at build time, same as the web deploy
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SITE_URL: ${{ secrets.VITE_SITE_URL }}
+          # signs the update packages; the matching public key is in tauri.conf.json
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build ${{ matrix.args }}
+
+      # a fixed file name keeps the landing page's /releases/latest/download/ links stable
+      - name: Rename
+        shell: bash
+        run: |
+          mkdir -p out
+          cp ${{ matrix.bundle }} "out/${{ matrix.asset }}"
+          cp ${{ matrix.updater }} "out/${{ matrix.updater-asset }}"
+          cp ${{ matrix.updater }}.sig "out/${{ matrix.updater-asset }}.sig"
+          ls -la out
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset }}
+          path: out/
+          if-no-files-found: error
+
+  release:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          cat > notes.md <<'EOF'
+          **Mac** — open `Notevra-mac.dmg`, drag Notevra into Applications, then run this once in Terminal before opening it:
+
+          ```
+          xattr -cr /Applications/Notevra.app
+          ```
+
+          The app isn't signed with an Apple certificate yet, so without this macOS says it is damaged and offers to delete it.
+
+          **Windows** — run `Notevra-windows-setup.exe`. If SmartScreen says "Windows protected your PC", choose **More info → Run anyway**.
+          EOF
+
+          # what installed apps read; URLs pin this exact version so marking an older release Latest rolls apps back
+          base="https://github.com/$RELEASES_REPO/releases/download/v$VERSION"
+          jq -n \
+            --arg version "$VERSION" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg mac_sig "$(cat out/Notevra-mac.app.tar.gz.sig)" \
+            --arg mac_url "$base/Notevra-mac.app.tar.gz" \
+            --arg win_sig "$(cat out/Notevra-windows-setup.exe.sig)" \
+            --arg win_url "$base/Notevra-windows-setup.exe" \
+            '{
+              version: $version,
+              notes: "Notevra \($version)",
+              pub_date: $date,
+              platforms: {
+                "darwin-aarch64": { signature: $mac_sig, url: $mac_url },
+                "darwin-x86_64": { signature: $mac_sig, url: $mac_url },
+                "windows-x86_64": { signature: $win_sig, url: $win_url }
+              }
+            }' > out/latest.json
+          rm out/*.sig
+          ls -la out
+
+          gh release create "v$VERSION" out/* \
+            --repo "$RELEASES_REPO" \
+            --title "Notevra $VERSION" \
+            --notes-file notes.md \
+            --latest

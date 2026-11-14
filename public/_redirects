@@ -1,0 +1,11 @@
+# Single-page app fallback. Read by BOTH Netlify and Cloudflare Pages, which is why this lives
+# here as a plain file rather than in a host-specific config.
+#
+# Every path serves the shell, which then reads the page out of IndexedDB. There is no router yet,
+# so today this only matters for a hard refresh on a URL the host doesn't recognise — but the
+# service worker already does the same thing internally (`navigateFallback` in vite.config.ts), and
+# the two have to agree or a reload behaves differently depending on whether the worker is installed.
+#
+# Real files win over this rule on both hosts, so /assets/*, /icons/* and /sw.js still resolve to
+# themselves. 200 (rewrite), not 301 — the URL in the address bar must not change.
+/*    /index.html   200

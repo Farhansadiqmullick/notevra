@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-theme="indigo" data-mode="light">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover: without it every env(safe-area-inset-*) in the CSS resolves to 0 on iOS,
+         and the tab bar sits under the home indicator -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Notevra</title>
+    <meta name="description" content="Offline first, Sync Later. Notes, tasks and planning that live on your device." />
+
+    <!-- Icons. favicon.svg is preferred where supported (one file, any size); the 48px PNG is the
+         fallback. apple-touch-icon is opaque on purpose — iOS composites transparency onto black. -->
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- iOS has no beforeinstallprompt and ignores most of the manifest; these are what make
+         "Add to Home Screen" open a standalone window with our name on it. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Notevra" />
+    <!-- black-translucent lets the app paint under the status bar; viewport-fit=cover + the
+         safe-area insets already in the CSS are what keep content out from under it -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Initial theme-color. Replaced at runtime by useTheme.stamp() so the browser/status bar
+         chrome follows the user's palette and light/dark choice instead of being stuck on indigo. -->
+    <meta name="theme-color" content="#eeeff4" />
+
+    <!-- No-flash theme boot: stamp the saved theme BEFORE Vue mounts (FRONTEND_WORKFLOW §1.4) -->
+    <script src="/theme-boot.js"></script>
+
+    <!-- Fonts are self-hosted and bundled (src/theme/fonts.css). No CDN: an installed PWA that
+         phones out for its typeface renders in system fallback the moment it's offline. -->
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

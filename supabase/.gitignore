@@ -1,0 +1,18 @@
+# Supabase
+.branches
+.temp
+
+# Local developer seed — recreates the dev account after `supabase db reset`.
+#
+# NEVER COMMIT THIS. It holds a real email address and a real bcrypt password hash. A hash is not
+# plaintext, but it is still a credential: in a repo it can be brute-forced offline, at leisure,
+# with no rate limit and no lockout. It is also machine-specific — it recreates ONE person's local
+# account and would be meaningless, or actively confusing, on anyone else's checkout.
+#
+# See supabase/seed.sql.example for the shape, and the header of seed.sql for how to regenerate it.
+seed.sql
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

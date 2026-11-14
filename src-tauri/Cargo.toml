@@ -1,0 +1,25 @@
+[package]
+name = "notevra"
+version = "1.0.0"
+description = "Notevra desktop app"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-opener = "2"
+# Windows/Linux hand a notevra:// link to a new process; this forwards it to the running app
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+# generate_context!() emits serde_json calls once tauri.conf.json has a plugins section
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -1,0 +1,35 @@
+# Cache rules. Read by BOTH Netlify and Cloudflare Pages.
+#
+# This file is not a nicety for a PWA — it is what keeps updates working at all.
+#
+# The service worker is only ever replaced when the browser re-fetches sw.js and finds it byte-
+# different. If a CDN is allowed to cache sw.js, the browser keeps being handed the OLD one, decides
+# nothing has changed, and the user is pinned to that version of the app forever. There is no error
+# and no symptom — they simply never see a new release again. index.html is the same story: it names
+# the hashed bundles, so a stale copy pins every asset with it.
+#
+# Everything under /assets/ is the opposite case. Vite puts a content hash in each filename, so a
+# changed file is a NEW url and can never be served stale. Those are safe to cache forever, and
+# caching them is where the speed comes from.
+
+# Security headers on every path; the Supabase URL is the hosted project's, so change it with the project.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self' https://xkarfcsghyfvvawmclkd.supabase.co https://vimeo.com; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.dailymotion.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+# names the icons and the start_url; a stale one breaks installing, not just updating
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

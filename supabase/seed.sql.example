@@ -1,0 +1,107 @@
+-- Template for `supabase/seed.sql` — recreating a developer account after `supabase db reset`.
+--
+-- ── YOU PROBABLY DO NOT NEED TO EDIT THIS BY HAND ───────────────────────────────────────────────
+-- Sign up in the app, then run:
+--
+--     npm run db:seed                    # the one non-test account in the database
+--     npm run db:seed -- you@example.com # or name it, when there is more than one
+--
+-- `scripts/gen-seed.mjs` writes `supabase/seed.sql` straight from the live `auth` schema, so the id,
+-- the hash and the identity row are copied rather than transcribed. This file is the shape it
+-- produces — useful for reading, reviewing, or filling in by hand on a machine without psql.
+--
+-- `seed.sql` is gitignored; this file is not, which is why every credential here is a placeholder.
+--
+-- ── WHY ─────────────────────────────────────────────────────────────────────────────────────────
+-- `supabase db reset` drops and recreates the whole database, `auth.users` included, and it has to
+-- run every time a migration changes. Without a seed, every reset silently deletes the account you
+-- have been testing with: you sign up again, get a NEW user id, and any local IndexedDB rows or
+-- queued sync operations that referenced the old id are orphaned. Pinning the id in a seed is what
+-- makes a reset survivable rather than a fresh start.
+--
+-- `supabase/config.toml` already points here:
+--     [db.seed]
+--     sql_paths = ["./seed.sql"]
+-- so it runs at the end of every reset. Nothing needs to be invoked by hand.
+--
+-- ── THE PASSWORD, WITHOUT KNOWING THE PASSWORD ──────────────────────────────────────────────────
+-- Seed the **bcrypt hash**, not a password. GoTrue stores the hash precisely because it is one-way,
+-- and restoring it restores the login: the password you already use keeps working after a reset,
+-- and it never has to be written down anywhere.
+--
+-- Dump it from a database where the account currently works:
+--
+--     psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -t -A -F$'\t' -c \
+--       "select u.id, u.encrypted_password, i.id, i.identity_data
+--          from auth.users u join auth.identities i on i.user_id = u.id
+--         where u.email = '<your email>';"
+--
+-- If the password is later changed, re-dump — otherwise the next reset restores the OLD hash and
+-- the new password stops working, which is a confusing thing to debug.
+--
+-- ── LOCAL ONLY ──────────────────────────────────────────────────────────────────────────────────
+-- Seed data for a Postgres in Docker on one machine. It never reaches a hosted project: `db push`
+-- applies `supabase/migrations/`, and seeds are not migrations.
+
+begin;
+
+insert into auth.users (
+  instance_id, id, aud, role,
+  email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at, last_sign_in_at,
+  is_sso_user, is_anonymous,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, reauthentication_token, phone_change, phone_change_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '<USER_UUID>',                 -- FIXED on purpose: workspaces.owner_id points at it
+  'authenticated',
+  'authenticated',
+  '<YOUR_EMAIL>',
+  '<BCRYPT_HASH>',               -- $2a$10$… , 60 chars, copied from auth.users
+  -- Confirmed up front. `enable_confirmations` is false locally, but setting this means the seeded
+  -- account still works unchanged the day it is switched on to test the confirmation flow.
+  now(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{}',
+  now(), now(), now(),
+  false, false,
+
+  -- EMPTY STRINGS, NOT NULL. This looks like pointless noise and it is the whole difference
+  -- between an account that logs in and one that does not.
+  --
+  -- These columns are nullable in the schema, so omitting them is accepted without complaint and
+  -- the row looks perfect in psql and in Studio. But GoTrue scans them into plain Go `string`s,
+  -- which cannot hold NULL, so the scan fails on every read of the user — and it surfaces as
+  --   {"code":500,"error_code":"unexpected_failure","msg":"Database error querying schema"}
+  -- from /token, naming no column, no row, and no file.
+  --
+  -- A real signup writes '' in all eight, which is why an account created through the API works and
+  -- a hand-written one silently does not.
+  '', '', '', '',
+  '', '', '', ''
+)
+on conflict (id) do nothing;   -- idempotent: the seed may meet a database that already has the row
+
+-- The identity row. Easy to miss, and login fails without it.
+--
+-- GoTrue resolves a password login through `auth.identities`, not by scanning `auth.users`. An
+-- account with a user row and no identity row exists, appears in Studio, and rejects the CORRECT
+-- password with "Invalid login credentials" — which reads exactly like a typo and sends you looking
+-- in the wrong place entirely.
+--
+-- For the email provider, `provider_id` is the user id as text.
+insert into auth.identities (
+  id, user_id, provider_id, provider, identity_data, created_at, updated_at, last_sign_in_at
+) values (
+  '<IDENTITY_UUID>',
+  '<USER_UUID>',
+  '<USER_UUID>',
+  'email',
+  '{"sub": "<USER_UUID>", "email": "<YOUR_EMAIL>", "email_verified": true, "phone_verified": false}',
+  now(), now(), now()
+)
+on conflict (id) do nothing;
+
+commit;

@@ -1,0 +1,252 @@
+/* ============================================================================
+ * tokens.css — the single source of truth for every color, radius and shadow.
+ * Components read ONLY the semantic vars in here (var(--accent), var(--surface)…).
+ * They must NEVER hardcode a hex. This is what makes 6 palettes × light/dark work.
+ *
+ * Structure:
+ *   1. Semantic — surfaces / borders / ink        (fixed across palettes)
+ *   2. Semantic — state (success/warn/danger)     (fixed — meaning must not move)
+ *   3. Radius + shadow tokens                      (from design_skiil.md)
+ *   4. Dark mode override                          ([data-mode="dark"])
+ *   5. Accent presets                              ([data-theme="…"])  ← palette swap
+ * ========================================================================== */
+
+/* 1 + 2 + 3 — light defaults --------------------------------------------- */
+:root,
+[data-mode='light'] {
+  /* surfaces */
+  --page:            #eeeff4;
+  --surface:         #ffffff;
+  --surface-subtle:  #fafafd;
+  --surface-sunken:  #fdfdff;
+  --surface-muted:   #f4f5fa;
+
+  /* borders / dividers */
+  --border:          #ecedf4;
+  --border-strong:   #e7e9f2;
+  --border-hover:    #c9cfe8;
+  --divider-faint:   #f0f1f7;
+
+  /* ink (text) */
+  --ink:             #161a29;
+  --ink-body:        #242938;
+  --ink-secondary:   #40465c;
+  --ink-muted:       #5a6076;
+  --ink-faint:       #8b90a4;
+  --ink-ghost:       #a7adc2;
+
+  /* fill for large accent surfaces (primary buttons, FAB). = accent in light;
+     softened in dark so buttons don't glare. */
+  --accent-solid: var(--accent);
+
+  /* state — FIXED across all palettes (green=done/synced, amber=attention, rose=urgency) */
+  --success:             #23a87e;
+  --success-deep:        #1a8563;
+  --success-tint:        #eefaf5;
+  --success-tint-border: #c6eadb;
+  --success-soft:        #a8dcc8;
+
+  --warn:                #f2a33c;
+  /*
+   * Darkened from #b06f14. These `-deep` tokens exist to be read ON the matching tint, and that
+   * pair measured 3.8:1 against `--warn-tint` — under the 4.5:1 WCAG AA needs for normal text, and
+   * amber-on-cream is the hardest of the three to read to begin with. Now 5.3:1. The same pair is
+   * what Archive's snooze bar and every warn chip use, so they all get legible at once.
+   */
+  --warn-deep:           #8f5a0e;
+  --warn-tint:           #fff4e6;
+  --warn-tint-border:    #f6e4c8;
+
+  --danger:              #ec6a78;
+  /* same correction as --warn-deep above: #c04452 on --danger-tint was 4.4:1, just under AA. 5.3:1 now. */
+  --danger-deep:         #b03a49;
+  --danger-tint:         #fdecee;
+  --danger-tint-border:  #f8d3d8;
+
+  /*
+   * info — "this happened", the neutral fourth state.
+   *
+   * A FIXED blue rather than `--accent`, on the rule at the top of this file: state colours carry
+   * meaning and meaning must not move. The accent swaps with the palette, so an accent-coloured
+   * notice would be indigo, grape or graphite depending on a setting that has nothing to do with
+   * what the message says — and on the graphite palette it would stop reading as a state at all.
+   */
+  --info:                #4b8ede;
+  --info-deep:           #2f6bb5;
+  --info-tint:           #eaf2fd;
+  --info-tint-border:    #cfe0f7;
+
+  --highlight:           #fff0bf;
+
+  /* tag roles (core/tags/tagColors.ts). Fixed across palettes; chips mix them with --ink, so one value serves both modes */
+  --tag-urgent:   var(--danger);
+  --tag-warning:  var(--warn);
+  --tag-info:     var(--info);
+  --tag-success:  var(--success);
+  --tag-waiting:  #8e6bd8;
+  --tag-blocked:  #d6409f;
+  --tag-personal: #12a594;
+  --tag-work:     #5b6cf0;
+  --tag-neutral:  #8b90a4;
+  --tag-mix:      15%;
+
+  /* code + dark rail (constant in both modes) */
+  --code-bg:     #1a1e2b;
+  --code-chrome: #232838;
+  --code-ink:    #c9d0e6;
+  --code-string: #7ed9b0;
+  --code-number: #f2a33c;
+  --code-meta:   #8b93b0;
+  --rail:        #1b1f2e;
+
+  /* 3 — radius scale */
+  --r-modal: 20px;  --r-card: 14px;  --r-item: 12px;
+  --r-control: 10px; --r-nav: 9px;   --r-row: 8px;
+  --r-chip: 7px;    --r-tag: 6px;    --r-bar: 5px;
+  --r-pill: 20px;
+
+  /* 3 — shadows */
+  --sh-hairline:   0 1px 2px rgba(27, 31, 46, 0.05);
+  --sh-selected:   0 6px 16px -10px rgba(91, 108, 240, 0.45);
+  --sh-accent-btn: 0 6px 14px -8px rgba(91, 108, 240, 0.8);
+  --sh-modal:      0 34px 80px -24px rgba(20, 23, 36, 0.45);
+  --sh-sheet:      0 -14px 40px -12px rgba(20, 23, 36, 0.4);
+  --sh-fab:        0 12px 26px -8px rgba(91, 108, 240, 0.9);
+  --scrim:         rgba(20, 23, 36, 0.3);
+}
+
+/* 4 — dark mode: VS Code-like. Neutral lifted grays (not near-black blue), soft gray text
+ *     (not white), calm shadows with no coloured glow. Accent presets still apply on top. */
+[data-mode='dark'] {
+  --page:            #17181c;
+  --surface:         #1e1f24;
+  --surface-subtle:  #191a1e;
+  --surface-sunken:  #202127;
+  --surface-muted:   #2a2b31;
+
+  --border:          #2c2d34;
+  --border-strong:   #383941;
+  --border-hover:    #474851;
+  --divider-faint:   #26272d;
+
+  /* content reads bright/crisp against the calm surface; meta stays dim for hierarchy */
+  --ink:             #f7f8fa; /* titles — near white, glows */
+  --ink-body:        #ebedf1; /* body/task text — bright, not matte */
+  --ink-secondary:   #c9ccd3;
+  --ink-muted:       #9a9ea8;
+  --ink-faint:       #71757f;
+  --ink-ghost:       #585b63;
+
+  /* buttons/FAB fill: pull the accent ~18% toward black so it reads calm, not neon */
+  --accent-solid: color-mix(in srgb, var(--accent) 82%, #0c0d11);
+
+  /* state tints translucent so they read on dark surfaces (a bit stronger for presence) */
+  --success-tint: color-mix(in srgb, var(--success) 22%, transparent);
+  --warn-tint:    color-mix(in srgb, var(--warn) 22%, transparent);
+  --danger-tint:  color-mix(in srgb, var(--danger) 22%, transparent);
+  --info-tint:    color-mix(in srgb, var(--info) 22%, transparent);
+
+  /*
+   * The matching BORDERS, which light mode defines as pale creams and roses.
+   *
+   * Without these the light values carry into dark unchanged, so anything bordered with one — the
+   * conflict banner, Archive's snooze bar, and now every notice — drew a bright cream hairline
+   * around a dark surface. Same treatment as the tints: the state colour at low alpha, so the edge
+   * belongs to the fill it surrounds in either mode.
+   */
+  --success-tint-border: color-mix(in srgb, var(--success) 32%, transparent);
+  --warn-tint-border:    color-mix(in srgb, var(--warn) 32%, transparent);
+  --danger-tint-border:  color-mix(in srgb, var(--danger) 32%, transparent);
+  --info-tint-border:    color-mix(in srgb, var(--info) 32%, transparent);
+
+  /* "text on tint" flips to BRIGHT in dark, so chip/pill labels glow instead of going matte.
+     (in light these -deep tokens are dark shades; here they're light so small text stays legible) */
+  --success-deep: #7fe6c0;
+  --warn-deep:    #ffce8c;
+  --danger-deep:  #ff9ba6;
+  --info-deep:    #a8cdf7;
+
+  /* tag chips need a stronger fill to read on a dark surface */
+  --tag-mix:      24%;
+
+  /* shadows: soft black depth, no coloured glow (the main source of "intensity") */
+  --sh-hairline:   0 1px 2px rgba(0, 0, 0, 0.4);
+  --sh-selected:   0 6px 16px -10px rgba(0, 0, 0, 0.55);
+  --sh-accent-btn: 0 2px 6px -3px rgba(0, 0, 0, 0.5);
+  --sh-modal:      0 34px 80px -24px rgba(0, 0, 0, 0.6);
+  --sh-sheet:      0 -14px 40px -12px rgba(0, 0, 0, 0.55);
+  --sh-fab:        0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  --scrim:         rgba(0, 0, 0, 0.5);
+}
+
+/* 5 — accent presets. Selecting a palette = setting data-theme on <html>.
+ *     Only the accent ramp changes; everything above stays put. */
+[data-theme='indigo'] {
+  --accent: #5b6cf0; --accent-hover: #4453d8; --accent-deep: #4e5ad9;
+  --accent-mid: #6c7bf5; --accent-soft: #b9c0fb;
+  --accent-tint: #eef0ff; --accent-tint-border: #dfe3ff;
+}
+[data-theme='violet'] {
+  --accent: #7c5cf5; --accent-hover: #6a49e0; --accent-deep: #6842d6;
+  --accent-mid: #8d72f7; --accent-soft: #cbbefb;
+  --accent-tint: #f1edff; --accent-tint-border: #e2d9fb;
+}
+[data-theme='ocean'] {
+  --accent: #3b82f6; --accent-hover: #2f6fe0; --accent-deep: #2563eb;
+  --accent-mid: #5a96f8; --accent-soft: #b3cefb;
+  --accent-tint: #eaf1fe; --accent-tint-border: #d3e2fc;
+}
+[data-theme='sky'] {
+  --accent: #0ea5c9; --accent-hover: #0c8fae; --accent-deep: #0b7c99;
+  --accent-mid: #38b6d6; --accent-soft: #a9deec;
+  --accent-tint: #e7f6fb; --accent-tint-border: #cdeaf3;
+}
+[data-theme='grape'] {
+  --accent: #b44de0; --accent-hover: #9d3ec6; --accent-deep: #8e33b4;
+  --accent-mid: #c46bec; --accent-soft: #e1b6f5;
+  --accent-tint: #f8ecfd; --accent-tint-border: #efd7fa;
+}
+[data-theme='graphite'] {
+  --accent: #4b5366; --accent-hover: #3c4356; --accent-deep: #3a4155;
+  --accent-mid: #6b7488; --accent-soft: #c2c7d2;
+  --accent-tint: #eef0f4; --accent-tint-border: #dee1e8;
+}
+
+/*
+ * In dark mode, accent tints go translucent for any palette, and the accent "text on tint"
+ * (--accent-deep) brightens toward white so accent chips/labels glow instead of going matte.
+ *
+ * The FILL, though, is graphite first and palette second.
+ *
+ * --accent-tint is the background behind everything that reads as "this one is selected": the
+ * sidebar's active page, Settings' active nav row, the command palette's active row, a selected
+ * block, a hovered history link. At 22% of a saturated accent that painted a genuinely coloured
+ * panel — indigo, grape or sky depending on a setting — and those panels sit on screen for the
+ * whole session, which is what tires the eye. So the accent is mixed into a neutral gray FIRST
+ * (--accent-quiet), and it's that gray that goes translucent. Every palette's selected row now
+ * lands within a couple of points of the graphite one, keeping only a trace of hue to say which
+ * theme you're on.
+ *
+ * What deliberately keeps its full colour: --accent-deep (the text/icon on top, which has to
+ * carry the palette and needs the contrast) and --accent-solid (primary buttons, the FAB — a
+ * small, intentional area of colour, not a background). Inputs never used the accent at all;
+ * they read --surface-muted / --surface-sunken and are untouched.
+ */
+[data-mode='dark'][data-theme] {
+  --accent-quiet: color-mix(in srgb, var(--accent) 18%, #9aa0ad);
+  --accent-tint: color-mix(in srgb, var(--accent-quiet) 18%, transparent);
+  --accent-tint-border: color-mix(in srgb, var(--accent-quiet) 30%, transparent);
+  --accent-deep: color-mix(in srgb, var(--accent) 55%, white);
+}
+
+/* block colours (text + background); tuned per mode so text stays readable on the page */
+:root {
+  --hue-gray: #787774; --hue-brown: #9f6b53; --hue-orange: #d9730d; --hue-yellow: #cb912f;
+  --hue-green: #448361; --hue-blue: #337ea9; --hue-purple: #9065b0; --hue-pink: #c14c8a; --hue-red: #d44c47;
+  --hue-bg-mix: 14%;
+}
+[data-mode='dark'] {
+  --hue-gray: #a3a3a3; --hue-brown: #ba856f; --hue-orange: #d9884f; --hue-yellow: #d6a54f;
+  --hue-green: #5fae80; --hue-blue: #6a9be0; --hue-purple: #a97ce0; --hue-pink: #dc68a3; --hue-red: #e76863;
+  --hue-bg-mix: 24%;
+}

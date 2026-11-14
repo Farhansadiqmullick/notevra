@@ -1,0 +1,26 @@
+/* shared by LinkBox and LinkCard; fixed, because their rects come from getBoundingClientRect */
+.fmt-bar {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, calc(-100% - 8px));
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-control);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--sh-pop, 0 6px 18px -6px rgba(0, 0, 0, 0.28));
+}
+.fmt {
+  min-inline-size: 26px;
+  block-size: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--r-bar);
+  background: transparent;
+  color: var(--ink-body);
+  cursor: pointer;
+  font: 600 12px var(--font-ui), system-ui, sans-serif;
+}
+.fmt:hover { background: var(--surface-muted); }
+.fmt:disabled { opacity: 0.45; cursor: default; }

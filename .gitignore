@@ -1,0 +1,42 @@
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+coverage
+
+# Env and secrets
+*.local
+.env
+.env.*
+!.env.example
+SUPABASE_PRODUCTION.md
+
+# Local caches and tool state
+.vite
+.wrangler
+.cache/
+.temp/
+.eslintcache
+*.tsbuildinfo
+playwright/.cache/
+test-results/
+e2e-report/
+backups/
+*.log
+
+# Editor and OS files
+.claude/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Planning notes stay local; only the root README and CHANGELOG are public
+*.md
+!/README.md
+!/CHANGELOG.md
+
+# Design mockups and test sample data
+design/
+fixtures/
