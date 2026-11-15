@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { db } from '@/core/db/schema';
 import { noteService } from '@/services/note.service';
 import { personalWorkspaceId } from '@/core/db/seed';
-import { useChangedToday } from '@/composables/useChanges';
+import { useChangedToday } from '@/composables/useChangedToday';
 
 // only Today is a virtual view; the Temp note opens as a real page
 export type SmartListId = 'today';

@@ -165,9 +165,6 @@ export const useUiStore = defineStore('ui', () => {
     focusSeq.value++;
     focusAt.value = Date.now();
   };
-  // ⌥S / Alt+S: the snooze control on screen opens its menu and clears this
-  const snoozeAsked = ref(false);
-
   // a search hit to show once its page is open; the page clears it after acting on it
   const revealBlockId = ref<string | null>(null);
   function openBlock(noteId: string, blockId: string) {
@@ -189,7 +186,7 @@ export const useUiStore = defineStore('ui', () => {
     handoverNotes, askLibraryHandover, answerLibraryHandover,
     selectedBlockIds, selectMode, lastSelectedId, railPref, setRailPref,
     selectNote, openPalette, closePalette, togglePalette, openSettings, closeSettings, openConflicts, closeConflicts, openAuth, closeAuth, openHistory, closeHistory,
-    setFocus, setEditing, setConfirmDelete, lastShortcut, revealBlockId, openBlock, snoozeAsked,
+    setFocus, setEditing, setConfirmDelete, lastShortcut, revealBlockId, openBlock,
     clearSelection, toggleSelected, selectRange, isSelected,
     setSelectMode: (v: boolean) => (selectMode.value = v),
   };
