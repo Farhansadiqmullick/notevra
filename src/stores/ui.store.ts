@@ -95,6 +95,7 @@ export const useUiStore = defineStore('ui', () => {
     editingBlockId.value = null; // never carry edit mode across notes
     confirmDeleteId.value = null;
     clearSelection(); // a selection belongs to one document
+    revealBlockId.value = null;
   }
 
   function clearSelection() {
@@ -164,6 +165,13 @@ export const useUiStore = defineStore('ui', () => {
     focusSeq.value++;
     focusAt.value = Date.now();
   };
+  // a search hit to show once its page is open; the page clears it after acting on it
+  const revealBlockId = ref<string | null>(null);
+  function openBlock(noteId: string, blockId: string) {
+    selectNote(noteId);
+    revealBlockId.value = blockId;
+  }
+
   const setEditing = (id: string | null) => {
     editingBlockId.value = id;
     if (id) confirmDeleteId.value = null; // entering edit closes any open delete popup
@@ -178,7 +186,7 @@ export const useUiStore = defineStore('ui', () => {
     handoverNotes, askLibraryHandover, answerLibraryHandover,
     selectedBlockIds, selectMode, lastSelectedId, railPref, setRailPref,
     selectNote, openPalette, closePalette, togglePalette, openSettings, closeSettings, openConflicts, closeConflicts, openAuth, closeAuth, openHistory, closeHistory,
-    setFocus, setEditing, setConfirmDelete, lastShortcut,
+    setFocus, setEditing, setConfirmDelete, lastShortcut, revealBlockId, openBlock,
     clearSelection, toggleSelected, selectRange, isSelected,
     setSelectMode: (v: boolean) => (selectMode.value = v),
   };

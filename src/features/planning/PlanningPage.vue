@@ -28,6 +28,9 @@ import TypeGlyph from '@/components/primitives/TypeGlyph.vue';
 import SyncDot from '@/components/primitives/SyncDot.vue';
 import AppIcon from '@/components/primitives/AppIcon.vue';
 import { usePageHistory } from '@/composables/usePageHistory';
+import { isTempNote } from '@/composables/useSmartList';
+import KeepAsPageDialog from '@/features/dialogs/KeepAsPageDialog.vue';
+import { useKeepTempNote } from './useKeepTempNote';
 
 const props = defineProps<{ noteId: string }>();
 const spaceName = useSpaceName(computed(() => props.noteId));
@@ -76,7 +79,8 @@ const pageActions = usePageActions(props.noteId, {
   note: p.note,
   blockIds: () => p.blocks.value.map((b) => b.id),
 });
-const paletteKey = shortcut('K');
+const isTemp = computed(() => !!p.note.value && isTempNote(p.note.value));
+const keeper = useKeepTempNote(() => props.noteId, () => p.note.value?.workspaceId);
 const railKey = shortcut('\\');
 </script>
 
@@ -130,7 +134,10 @@ const railKey = shortcut('\\');
           <button class="histbtn" :disabled="!hist.redoable.value" :title="hist.redoLabel" :aria-label="hist.redoLabel" @click="hist.redo()"><AppIcon name="redo" /></button>
         </div>
         <span class="saved"><SyncDot :status="sync.status" /> {{ sync.shortLabel }}</span>
-        <ShareButton :note-id="noteId" />
+        <button v-if="isTemp" class="keep tap-target" @click="keeper.picking.value = 'planning'">
+          <AppIcon name="external" /> <span class="keep-long">Keep as a page</span><span class="keep-short">Keep</span>
+        </button>
+        <ShareButton v-else :note-id="noteId" />
         <button
           class="railtoggle"
           :class="{ on: rail.open.value }"
@@ -143,9 +150,11 @@ const railKey = shortcut('\\');
           <button class="more tap-target" title="Page actions" aria-label="Page actions" @click="pageActions.toggle()"><AppIcon name="more" /></button>
           <div v-if="pageActions.open.value" class="menu">
             <button @click="pageActions.rename()">Rename…</button>
-            <span class="menu-label">Turn into</span>
-            <button @click="pageActions.changeType('single')">Blank page</button>
-            <button @click="pageActions.changeType('archive')">Archive list</button>
+            <template v-if="!isTemp">
+              <span class="menu-label">Turn into</span>
+              <button @click="pageActions.changeType('single')">Blank page</button>
+              <button @click="pageActions.changeType('archive')">Archive list</button>
+            </template>
             <span class="menu-sep" />
             <button @click="pageActions.archive()">Move to Archive</button>
             <button @click="pageActions.duplicate()">Duplicate page</button>
@@ -165,18 +174,33 @@ const railKey = shortcut('\\');
             place the title appeared — so naming a page (or renaming it from the ⋯ menu) changed a
             12px line of chrome and nothing else, and the document itself never said what it was.
           -->
+          <div v-if="isTemp" class="temp-strip">
+            <p>A scratch page for anything. When something here is worth keeping, turn it into a real page.</p>
+            <div class="temp-picks">
+              <button @click="keeper.picking.value = 'planning'">Planning page</button>
+              <button @click="keeper.picking.value = 'archive'">Archive list</button>
+              <button @click="keeper.picking.value = 'single'">Blank page</button>
+            </div>
+          </div>
           <NoteTitle tag="h1" class="title" :note-id="noteId" :title="p.note.value?.title ?? ''" />
           <div class="metarow"><PropertyChips :note="p.note.value" /></div>
           <!-- Planning tasks carry priority + tags only (they're for finding work, not scheduling
                it) — no due date or assignee, so the inline editor stays light. -->
           <BlockDocument class="doc-body" :blocks="p.blocks.value" :note-id="noteId" :property-fields="PLANNING_PROPERTY_FIELDS" />
-          <button class="addline" @click="addBlock"><span class="addline-ic" aria-hidden="true"><AppIcon name="plus" :size="12" /></span> Add a block <span class="addline-hint">or press {{ paletteKey }}</span></button>
+          <button class="addline" @click="addBlock"><span class="addline-ic" aria-hidden="true"><AppIcon name="plus" :size="12" /></span> Add a block <span class="addline-hint">or type /</span></button>
         </div>
       </div>
     </div>
 
     <!-- properties live on the RIGHT; the left pane is the table of contents and nothing else -->
     <PropertiesRail :note="p.note.value" />
+
+    <KeepAsPageDialog
+      v-if="keeper.picking.value"
+      :type="keeper.picking.value"
+      @keep="keeper.keep"
+      @close="keeper.picking.value = null"
+    />
   </div>
 </template>
 
@@ -308,6 +332,17 @@ const railKey = shortcut('\\');
 .histbtn { inline-size: 28px; block-size: 28px; display: grid; place-items: center; border: none; background: none; border-radius: var(--r-row); color: var(--ink-muted); font-size: 15px; cursor: pointer; transition: background-color 120ms ease-out, color 120ms ease-out; }
 .histbtn:hover:not(:disabled) { background: var(--surface-muted); color: var(--ink-body); }
 .histbtn:disabled { opacity: 0.35; cursor: default; }
+
+/* Temp note */
+.keep { display: inline-flex; align-items: center; gap: 5px; border: none; background: var(--accent-solid); color: #fff; cursor: pointer; border-radius: var(--r-control); padding: 5px 11px; font: 700 11.5px var(--font-ui); white-space: nowrap; flex: none; }
+.keep:hover { background: var(--accent-hover); }
+.keep-short { display: none; }
+@media (max-width: 900px) { .keep-long { display: none; } .keep-short { display: inline; } }
+.temp-strip { display: grid; gap: 8px; margin-block-end: 14px; padding: 12px 14px; border-radius: var(--r-card); background: var(--accent-tint); border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); }
+.temp-strip p { margin: 0; font: 400 13px/1.5 var(--font-ui); color: var(--ink-body); }
+.temp-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.temp-picks button { border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); background: var(--surface); color: var(--accent-deep); border-radius: var(--r-row); padding: 6px 10px; font: 700 12px var(--font-ui); cursor: pointer; }
+.temp-picks button:hover { border-color: var(--accent); }
 
 .menu .menu-label { display: block; padding: 8px 9px 3px; font: 700 9.5px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
 .menu .menu-sep { display: block; block-size: 1px; margin: 5px 4px; background: var(--border); }

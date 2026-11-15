@@ -64,7 +64,6 @@ const pageActions = usePageActions(props.noteId, {
   note: s.note,
   blockIds: () => s.blocks.value.map((b) => b.id),
 });
-const paletteKey = shortcut('K');
 const railKey = shortcut('\\');
 </script>
 
@@ -129,7 +128,7 @@ const railKey = shortcut('\\');
             <span v-if="p.edited" class="edited">{{ p.edited }}</span>
           </div>
           <BlockDocument class="doc-body" :blocks="s.blocks.value" :note-id="noteId" />
-          <button class="addline" @click="addBlock"><span class="addline-ic" aria-hidden="true"><AppIcon name="plus" :size="12" /></span> Add a block <span class="addline-hint">or press {{ paletteKey }}</span></button>
+          <button class="addline" @click="addBlock"><span class="addline-ic" aria-hidden="true"><AppIcon name="plus" :size="12" /></span> Add a block <span class="addline-hint">or type /</span></button>
         </div>
       </div>
     </div>

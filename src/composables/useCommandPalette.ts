@@ -1,21 +1,14 @@
-/**
- * useCommandPalette — the ⌘K palette logic. Two sections (INSERT BLOCK · JUMP TO), live-filtered
- * by the query, with a flat list for arrow-key navigation. The same INSERT BLOCK list is what
- * the `/` slash menu will show inline once blocks are text-editable (editor step).
- */
+// The ⌘K palette: search results and pages to jump to. Adding blocks lives in "/" and "Add a block".
 import { ref, computed, watch } from 'vue';
 import { useUiStore } from '@/stores/ui.store';
 import { useNotesStore } from '@/stores/notes.store';
-import { blockService } from '@/services/block.service';
 import { searchService } from '@/core/search/searchService';
-import { BLOCK_TYPES } from '@/core/editor/blockTypes';
 import type { PageType } from '@/types/models';
 
 export interface CmdItem {
   id: string;
   label: string;
-  kind: 'insert' | 'jump' | 'result';
-  glyph?: string; // for insert rows
+  kind: 'jump' | 'result';
   noteType?: PageType; // for jump rows
   source?: string; // "Note title · block type" for result rows
   run: () => void;
@@ -28,19 +21,6 @@ export function useCommandPalette() {
   const query = ref('');
   const activeIndex = ref(0);
   const match = (s: string) => s.toLowerCase().includes(query.value.trim().toLowerCase());
-
-  const insertItems = computed<CmdItem[]>(() =>
-    BLOCK_TYPES.filter((d) => match(d.label)).map((d) => ({
-      id: 'ins-' + d.type,
-      label: d.label,
-      kind: 'insert',
-      glyph: d.glyph,
-      run: async () => {
-        const id = await blockService.createBlock(ui.activeNoteId, d.type, { props: d.defaults() });
-        ui.setFocus(id);
-      },
-    })),
-  );
 
   const jumpItems = computed<CmdItem[]>(() =>
     notes.notes
@@ -63,22 +43,16 @@ export function useCommandPalette() {
       label: h.text,
       kind: 'result',
       source: `${noteTitle(h.noteId)} · ${h.type}`,
-      run: () => ui.selectNote(h.noteId), // TODO(editor): scroll to the block
+      run: () => ui.openBlock(h.noteId, h.blockId),
     }));
   });
 
   const sections = computed(() => {
     const q = query.value.trim();
-    if (!q) {
-      return [
-        { label: 'INSERT BLOCK', items: insertItems.value },
-        { label: 'JUMP TO', items: jumpItems.value },
-      ].filter((s) => s.items.length);
-    }
+    if (!q) return [{ label: 'JUMP TO', items: jumpItems.value }].filter((s) => s.items.length);
     return [
       { label: `SEARCHED ON DEVICE · ${resultItems.value.length} results`, items: resultItems.value },
       { label: 'JUMP TO', items: jumpItems.value },
-      { label: 'INSERT BLOCK', items: insertItems.value },
     ].filter((s) => s.items.length);
   });
   const flat = computed(() => sections.value.flatMap((s) => s.items));
