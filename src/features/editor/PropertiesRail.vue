@@ -12,8 +12,9 @@
  * The open/closed state is global and persisted (`usePropsRail`) — a pane you keep closing should
  * stay closed on the next page, not ambush you again.
  */
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { usePropsRail } from '@/composables/usePropsRail';
+import { useUiStore } from '@/stores/ui.store';
 import { fullWhen } from '@/core/editor/snooze';
 import NotePropertiesPanel from '@/features/editor/NotePropertiesPanel.vue';
 import NoteActions from '@/features/editor/NoteActions.vue';
@@ -44,6 +45,12 @@ function onKey(e: KeyboardEvent) {
 }
 onMounted(() => window.addEventListener('keydown', onKey));
 onUnmounted(() => window.removeEventListener('keydown', onKey));
+
+// ⌥S on a closed rail: open it, and the Snooze button inside picks the request up as it mounts
+const ui = useUiStore();
+watch(() => ui.snoozeAsked, (asked) => {
+  if (asked && props.note) rail.show();
+});
 </script>
 
 <template>

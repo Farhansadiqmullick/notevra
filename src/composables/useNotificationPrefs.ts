@@ -2,6 +2,7 @@
 import { computed, reactive, watch } from 'vue';
 import { db } from '@/core/db/schema';
 import { logger } from '@/core/logging/logger';
+import { isToneId, type ToneId } from '@/core/reminders/chime';
 
 const log = logger.scoped('notification-prefs');
 const META_KEY = 'notificationPrefs';
@@ -15,6 +16,7 @@ export interface NotificationPrefs {
   dueTime: string;
   social: boolean;
   conflicts: ConflictAlert;
+  tone: ToneId;
 }
 
 export const DEFAULT_PREFS: NotificationPrefs = {
@@ -23,6 +25,7 @@ export const DEFAULT_PREFS: NotificationPrefs = {
   dueTime: '09:00',
   social: true,
   conflicts: 'banner',
+  tone: 'chime',
 };
 
 const VALID_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -35,6 +38,7 @@ export function normalizePrefs(raw: unknown): NotificationPrefs {
     dueTime: typeof v.dueTime === 'string' && VALID_TIME.test(v.dueTime) ? v.dueTime : DEFAULT_PREFS.dueTime,
     social: typeof v.social === 'boolean' ? v.social : DEFAULT_PREFS.social,
     conflicts: v.conflicts === 'sound' || v.conflicts === 'quiet' || v.conflicts === 'banner' ? v.conflicts : DEFAULT_PREFS.conflicts,
+    tone: isToneId(v.tone) ? v.tone : DEFAULT_PREFS.tone,
   };
 }
 

@@ -704,7 +704,9 @@ export class SyncEngine {
        * conflict dev-tool and MockTransport's echo of what was pushed — both carry `id` in the
        * payload. The suite was green against a shape the server does not send.
        */
-      await table.put({ ...patch, ...stamp, id: op.entityId } as never);
+      // the Create operation's time is when the page was made, on whichever device made it
+      const created = op.entity === 'note' ? { createdAt: op.createdAt } : {};
+      await table.put({ ...patch, ...stamp, ...created, id: op.entityId } as never);
     } else if (op.type.startsWith('Delete')) {
       if (!existing) return false;
       await table.update(op.entityId, { deletedAt: op.createdAt, ...stamp } as never);

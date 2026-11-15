@@ -141,6 +141,13 @@ function onKey(e: KeyboardEvent) {
     e.preventDefault();
     ui.togglePalette();
   }
+  // KeyS, not "s": on a Mac ⌥S types ß
+  if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyS' && !ui.settingsOpen && !activeSmartList.value) {
+    e.preventDefault();
+    ui.snoozeAsked = true;
+    // nothing on screen to snooze: let the request lapse instead of popping a menu up later
+    setTimeout(() => (ui.snoozeAsked = false), 500);
+  }
 }
 onMounted(() => window.addEventListener('keydown', onKey));
 onUnmounted(() => window.removeEventListener('keydown', onKey));

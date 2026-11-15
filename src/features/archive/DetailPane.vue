@@ -15,7 +15,9 @@ import { useTaskPin } from './useTaskPin';
 import { pasteIntoEmpty } from './pasteIntoEmpty';
 import { useUiStore } from '@/stores/ui.store';
 import { useNoticeStore } from '@/stores/notice.store';
-import { SNOOZE_OPTIONS, shortWhen, fullWhen } from '@/core/editor/snooze';
+import { shortWhen, fullWhen } from '@/core/editor/snooze';
+import SnoozeMenu from '@/features/editor/SnoozeMenu.vue';
+import { useSnoozeShortcut } from '@/features/editor/useSnoozeShortcut';
 import BlockPropertiesPanel from '@/features/editor/BlockPropertiesPanel.vue';
 import SubtaskRow from '@/features/editor/blocks/SubtaskRow.vue';
 import BaseChip from '@/components/primitives/BaseChip.vue';
@@ -118,6 +120,7 @@ function snooze(until: number | null) {
   if (props.block) blockService.snoozeBlock(props.block.id, until);
   menu.value = null;
 }
+useSnoozeShortcut(() => !!props.block, () => (menu.value = 'snooze'));
 
 const { pinned, atCap, pinTitle, togglePin } = useTaskPin(() => props.block);
 
@@ -191,9 +194,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocDown));
         <BaseButton size="sm" variant="bordered" @click="menu = menu === 'snooze' ? null : 'snooze'">
           {{ snoozedUntil ? `Snoozed · ${shortWhen(snoozedUntil)}` : 'Snooze' }}
         </BaseButton>
-        <div v-if="menu === 'snooze'" class="menu">
-          <button v-for="opt in SNOOZE_OPTIONS" :key="opt.label" @click="snooze(opt.at())">{{ opt.label }}</button>
-          <button v-if="snoozedUntil" class="clear" @click="snooze(null)">Clear snooze</button>
+        <div v-if="menu === 'snooze'" class="menu snooze">
+          <SnoozeMenu :snoozed="!!snoozedUntil" @pick="snooze" @close="menu = null" />
         </div>
       </div>
 
@@ -328,6 +330,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocDown));
 .menu button.danger { color: var(--danger); }
 .menu button.danger:hover { background: var(--danger-tint); color: var(--danger-deep); }
 .menu button.clear { color: var(--ink-faint); border-top: 1px solid var(--divider-faint); margin-top: 3px; }
+.menu.snooze { inline-size: 224px; }
 .snoozebar { padding: 8px 20px; background: var(--warn-tint); color: var(--warn-deep); font: 600 11.5px var(--font-ui); border-bottom: 1px solid var(--warn-tint-border); }
 /* the extra class outranks BaseButton's own .v-bordered */
 .actionbar .pinon { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
