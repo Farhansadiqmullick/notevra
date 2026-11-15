@@ -3,7 +3,8 @@
  * ArchivePage — the whole Archive screen: header bar + list pane + detail pane.
  * Spec: design_skiil.md §1 (Archive). Owns useArchive(noteId) and wires the two panes.
  */
-import { computed, ref, watchEffect } from 'vue';
+import { computed, ref, watch, watchEffect } from 'vue';
+import { db, type BlockRow } from '@/core/db/schema';
 import { useSpaceName } from '@/composables/useSpaceName';
 import { useArchive } from '@/composables/useArchive';
 import { useBreakpoint } from '@/composables/useBreakpoint';
@@ -28,6 +29,13 @@ const props = defineProps<{ noteId: string }>();
 const spaceName = useSpaceName(computed(() => props.noteId));
 const hist = usePageHistory(computed(() => props.noteId));
 const a = useArchive(props.noteId);
+
+// a search can hit a subtask or a line inside an item's Content; the list shows its top task
+async function topLevelOf(id: string): Promise<BlockRow | undefined> {
+  let b = await db.blocks.get(id);
+  while (b?.parentBlock) b = await db.blocks.get(b.parentBlock);
+  return b;
+}
 const { roleFor } = useTagColors();
 const ui = useUiStore();
 const sync = useSyncStore();
@@ -80,9 +88,25 @@ const pageActions = usePageActions(props.noteId, {
   blockIds: () => a.items.value.map((b) => b.id),
 });
 
+// a search hit: select the list item it lives in, even if this page was already open on another
+watch(
+  () => [ui.revealBlockId, a.items.value.length] as const,
+  async ([target]) => {
+    if (!target) return;
+    const item = await topLevelOf(target);
+    if (!item) return void (ui.revealBlockId = null);
+    // not loaded yet: the watch runs again when the list arrives
+    if (item.noteId !== props.noteId || !a.items.value.some((b) => b.id === item.id)) return;
+    ui.revealBlockId = null;
+    if (!a.visibleItems.value.some((b) => b.id === item.id)) a.filter.value = 'all';
+    onSelect(item.id); // a search is an explicit pick, so a phone opens the detail too
+  },
+  { immediate: true },
+);
+
 // default selection: first open item, once data has loaded
 watchEffect(() => {
-  if (!a.selectedId.value && a.openItems.value[0]) a.select(a.openItems.value[0].id);
+  if (!a.selectedId.value && !ui.revealBlockId && a.openItems.value[0]) a.select(a.openItems.value[0].id);
 });
 </script>
 

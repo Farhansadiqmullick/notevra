@@ -8,7 +8,7 @@ import { useUiStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { useProfileStore } from '@/stores/profile.store';
 import { workspaceService } from '@/services/workspace.service';
-import { isInboxNote, useSmartListCounts, type SmartListId } from '@/composables/useSmartList';
+import { isTempNote, ensureTempNote, useSmartListCounts, type SmartListId } from '@/composables/useSmartList';
 import { usePageMenu } from '@/composables/usePageMenu';
 import { useOpeningPage } from '@/app/useOpeningPage';
 import { usePageCreation } from '@/app/usePageCreation';
@@ -42,7 +42,6 @@ import HistoryDialog from '@/features/history/HistoryDialog.vue';
 import UpdatePrompt from '@/features/pwa/UpdatePrompt.vue';
 import InstallSheet from '@/features/pwa/InstallSheet.vue';
 import SettingsPage from '@/features/settings/SettingsPage.vue';
-import SmartListPage from '@/features/smart/SmartListPage.vue';
 import TodayPage from '@/features/smart/TodayPage.vue';
 import ConflictBar from '@/app/ConflictBar.vue';
 
@@ -71,12 +70,12 @@ function onTab(tab: 'today' | 'notes' | 'search' | 'me') {
 }
 
 const collapsed = ref<Set<string>>(new Set());
-// the Inbox page is reached from the Inbox row at the top, so it is not listed twice
-const inboxNoteId = computed(() => notesStore.notes.find(isInboxNote)?.id ?? null);
+// the Temp note is reached from its row at the top, so it is not listed twice
+const tempNoteId = computed(() => notesStore.notes.find(isTempNote)?.id ?? null);
 const groups = computed(() =>
   notesStore.groups.map((g) => ({
     ...g,
-    notes: g.notes.filter((n) => n.id !== inboxNoteId.value),
+    notes: g.notes.filter((n) => n.id !== tempNoteId.value),
     collapsed: collapsed.value.has(g.id),
   })),
 );
@@ -105,13 +104,23 @@ const activeTab = computed<'today' | 'notes' | 'search' | 'me'>(() => {
 const counts = useSmartListCounts();
 const smartLists = computed(() => [
   { id: 'today', label: 'Today', color: 'var(--warn)', count: counts.today.value },
-  { id: 'inbox', label: 'Inbox', color: 'var(--accent)', count: counts.inbox.value },
+  { id: 'temp', label: 'Temp note', color: 'var(--accent)' },
 ]);
-function openSmartList(id: string) {
+async function openSmartList(id: string) {
+  if (id === 'temp') {
+    ui.closeSettings();
+    return selectNote(await ensureTempNote());
+  }
   activeSmartList.value = id as SmartListId;
   ui.closeSettings();
   drawerOpen.value = false;
 }
+// the Temp note is a real page, so its row lights up when that page is open
+const sidebarActive = computed(() => {
+  if (ui.settingsOpen) return null;
+  if (activeSmartList.value) return activeSmartList.value;
+  return ui.activeNoteId && ui.activeNoteId === tempNoteId.value ? 'temp' : null;
+});
 
 const {
   showNewPage, newPageTargetName, openNewPage, createPage,
@@ -150,7 +159,7 @@ useSignIntoLibrary();
         :user-avatar-url="profile.avatarUrl"
         :smart-lists="smartLists"
         :groups="groups"
-        :active-smart-list="ui.settingsOpen ? null : activeSmartList"
+        :active-smart-list="sidebarActive"
         :active-note-id="activeSmartList ? '' : ui.activeNoteId"
         @select-smart-list="openSmartList"
         :trash-count="notesStore.archiveCounts.trash"
@@ -174,9 +183,7 @@ useSignIntoLibrary();
 
     <!-- settings, then smart lists (virtual), else the real page for the active note -->
     <SettingsPage v-if="ui.settingsOpen" />
-    <!-- Today is a read-only index of pages, so it is its own view; Inbox is still the capture list -->
     <TodayPage v-else-if="activeSmartList === 'today'" @select="selectNote" />
-    <SmartListPage v-else-if="activeSmartList" :key="activeSmartList" :list-id="activeSmartList" />
     <template v-else>
       <ArchivePage v-if="activeNote?.type === 'archive'" :key="ui.activeNoteId" :note-id="ui.activeNoteId" />
       <PlanningPage v-else-if="activeNote?.type === 'planning'" :key="ui.activeNoteId" :note-id="ui.activeNoteId" />

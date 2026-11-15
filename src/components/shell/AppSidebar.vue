@@ -138,8 +138,8 @@ function clearHold() {
             <svg v-if="sl.id === 'today'" viewBox="0 0 16 16">
               <circle cx="8" cy="8" r="3" /><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1" />
             </svg>
-            <svg v-else-if="sl.id === 'inbox'" viewBox="0 0 16 16">
-              <path d="M2 9.5 3.8 3.2A1 1 0 0 1 4.8 2.5h6.4a1 1 0 0 1 1 .7L14 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1Z" /><path d="M2 9.5h3.5l1 1.5h3l1-1.5H14" />
+            <svg v-else-if="sl.id === 'temp'" viewBox="0 0 16 16">
+              <path d="M8 13.5h6" /><path d="M11 2.5a1.4 1.4 0 0 1 2 2L5 12.5l-2.7.7.7-2.7Z" />
             </svg>
             <span v-else class="nav-sq" :style="{ background: sl.color }" />
           </span>

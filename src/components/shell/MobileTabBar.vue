@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * MobileTabBar — bottom tabs for the mobile shell (design_skiil.md §Mobile PWA).
- * Today · Notes · Search · Me. The sync dot rides the Me tab. Respects safe-area insets.
- */
+// Mobile bottom tabs: Notes · Today · Search · Me; the sync dot rides the Me tab.
 import SyncDot from '@/components/primitives/SyncDot.vue';
 import type { SyncStatus } from '@/types/models';
 import AppIcon from '@/components/primitives/AppIcon.vue';
@@ -13,11 +10,11 @@ const emit = defineEmits<{ select: [tab: 'today' | 'notes' | 'search' | 'me'] }>
 
 <template>
   <nav class="tabs">
-    <button class="tab" :class="{ on: active === 'today' }" @click="emit('select', 'today')">
-      <span class="ic">◧</span><span class="lb">Today</span>
-    </button>
     <button class="tab" :class="{ on: active === 'notes' }" @click="emit('select', 'notes')">
       <span class="ic"><AppIcon name="menu" /></span><span class="lb">Notes</span>
+    </button>
+    <button class="tab" :class="{ on: active === 'today' }" @click="emit('select', 'today')">
+      <span class="ic">◧</span><span class="lb">Today</span>
     </button>
     <button class="tab" :class="{ on: active === 'search' }" @click="emit('select', 'search')">
       <span class="ic">◌</span><span class="lb">Search</span>

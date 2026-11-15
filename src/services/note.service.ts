@@ -111,6 +111,18 @@ export const noteService = {
     return patchNote(id, { workspaceId }, 'UpdateNote');
   },
 
+  // one write, so other devices never see a half-kept page; the next Temp note is made on demand
+  async keepAsPage(id: string, page: { title: string; type: PageType; workspaceId: string }): Promise<void> {
+    const existing = await db.notes.get(id);
+    if (!existing) throw new DbError(`note ${id} not found`, 'note/not-found');
+    const { smartList: _marker, ...properties } = existing.properties ?? {};
+    return patchNote(
+      id,
+      { title: page.title.trim() || 'Untitled', type: page.type, workspaceId: page.workspaceId, properties },
+      'UpdateNote',
+    );
+  },
+
   /** Move a note to the Archive (never auto-deleted; restorable). */
   archiveNote(id: string): Promise<void> {
     return patchNote(id, { archived: 1 }, 'UpdateNote');

@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * CommandPalette — ⌘K surface. INSERT BLOCK + JUMP TO, keyboard-first. Spec: design_skiil.md
- * §Interactions (Command palette). Opening/closing is owned by ui.store; this renders + drives it.
- */
+// ⌘K surface: search results and JUMP TO, keyboard-first. ui.store owns opening and closing.
 import { onMounted, ref } from 'vue';
 import { useUiStore } from '@/stores/ui.store';
 import { useCommandPalette } from '@/composables/useCommandPalette';
@@ -60,7 +57,6 @@ function segments(text: string): { t: string; hit: boolean }[] {
           >
             <TypeGlyph v-if="item.kind === 'jump' && item.noteType" :type="item.noteType" :size="16" />
             <span v-else-if="item.kind === 'result'" class="res-tile" aria-hidden="true" />
-            <span v-else class="ins-glyph">{{ item.glyph }}</span>
 
             <span class="text">
               <span class="label">
@@ -90,27 +86,6 @@ function segments(text: string): { t: string; hit: boolean }[] {
 .row { display: flex; align-items: center; gap: 10px; inline-size: 100%; padding: 9px 10px; border: none; background: none; border-radius: var(--r-row); cursor: pointer; text-align: start; }
 .row.active { background: var(--accent-tint); }
 .row.active .label { color: var(--accent-deep); }
-/*
- * The glyph box grows with its glyph instead of being a fixed 16px square.
- *
- * Most of these are one character, but Code's is `</>` and the numbered list's is `1.` — and in a
- * 16px box with `place-items: center` those wrapped onto a second line, which pushed the glyph out
- * of the row and left it floating under the label. `min-inline-size` keeps every single-character
- * glyph the same width as before, so the column still lines up; `nowrap` is what actually fixes it.
- */
-.ins-glyph {
-  min-inline-size: 16px;
-  block-size: 16px;
-  padding-inline: 3px;
-  display: grid;
-  place-items: center;
-  font: 600 10px/1 'JetBrains Mono Variable', ui-monospace, monospace;
-  white-space: nowrap;
-  color: var(--ink-muted);
-  background: var(--surface-muted);
-  border-radius: 5px;
-  flex: none;
-}
 .res-tile { inline-size: 16px; block-size: 16px; border-radius: 5px; background: var(--accent-soft); flex: none; }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .label { font: 500 13.5px var(--font-ui); color: var(--ink-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

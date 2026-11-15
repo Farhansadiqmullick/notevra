@@ -28,8 +28,8 @@ const results = computed(() => {
     .map((h) => ({ ...h, source: `${noteTitle(h.noteId)} · ${h.type}` }));
 });
 
-function open(noteId: string) {
-  ui.selectNote(noteId);
+function open(noteId: string, blockId: string) {
+  ui.openBlock(noteId, blockId);
   emit('close');
 }
 
@@ -69,7 +69,7 @@ function segments(text: string): { t: string; hit: boolean }[] {
       <div v-if="query.trim()" class="count">{{ results.length }} RESULTS · SEARCHED ON DEVICE</div>
 
       <div class="results">
-        <button v-for="r in results" :key="r.blockId" class="row" @click="open(r.noteId)">
+        <button v-for="r in results" :key="r.blockId" class="row" @click="open(r.noteId, r.blockId)">
           <span class="tile" />
           <span class="text">
             <span class="title"><template v-for="(seg, i) in segments(r.text)" :key="i"><mark v-if="seg.hit">{{ seg.t }}</mark><template v-else>{{ seg.t }}</template></template></span>
