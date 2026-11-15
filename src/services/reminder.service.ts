@@ -27,10 +27,7 @@
  * "when the next reminder is due" and `MAX_SLEEP`, and the tab becoming visible re-checks
  * immediately. Being early is free; being late is the bug.
  *
- * **Two open tabs will both fire.** Each has its own scheduler and its own copy of the row. The
- * second one's write is a no-op by the time it lands, but the sound plays twice. Left as-is
- * deliberately — the fix is a lock in shared storage, which is a lot of machinery for a duplicate
- * chime, and it is written down in design/backlog-after-sync.md §7 rather than hidden here.
+ * Only one open tab runs this scheduler; see core/reminders/lead.ts.
  */
 import { db, type BlockRow, type NoteRow } from '@/core/db/schema';
 import { eventBus } from '@/core/events/eventBus';

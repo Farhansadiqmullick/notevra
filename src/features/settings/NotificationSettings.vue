@@ -1,8 +1,30 @@
 <script setup lang="ts">
 // Settings → Notifications. Per device; the master switch silences everything under it.
+import { ref } from 'vue';
 import { useNotificationPrefs, type ConflictAlert } from '@/composables/useNotificationPrefs';
+import { createChime, TONES, type ToneId } from '@/core/reminders/chime';
+import { askToNotify, notifyPermission } from '@/core/reminders/systemNotify';
 
 const { prefs } = useNotificationPrefs();
+
+const TONE_IDS = Object.keys(TONES) as ToneId[];
+const chime = createChime();
+function pickTone(id: ToneId) {
+  prefs.tone = id;
+  void chime.play(id);
+}
+
+const permission = ref(notifyPermission());
+const PERMISSION_SAYS = {
+  granted: 'On. A reminder that comes due while Notevra is in the background shows as a system notification.',
+  default: 'Notevra asks the first time you snooze something, or you can allow it now.',
+  denied: 'Blocked in your browser or system settings. Reminders still show inside Notevra.',
+  unsupported: 'This browser has no system notifications. Reminders show inside Notevra.',
+} as const;
+async function allow() {
+  await askToNotify();
+  permission.value = notifyPermission();
+}
 
 const CONFLICT_OPTIONS: { id: ConflictAlert; label: string }[] = [
   { id: 'banner', label: 'Banner' },
@@ -47,6 +69,33 @@ function setTime(e: Event) {
       <button class="switch" role="switch" :aria-checked="prefs.due" :disabled="!prefs.enabled" aria-label="Due reminders" @click="prefs.due = !prefs.due" />
     </div>
 
+    <div class="row col" :class="{ dim: !prefs.enabled }">
+      <span class="lbl">
+        Reminder sound
+        <span class="sublbl">Plays when a snooze runs out or something is due. Pick one to hear it.</span>
+      </span>
+      <div class="seg" role="radiogroup" aria-label="Reminder sound">
+        <button
+          v-for="id in TONE_IDS"
+          :key="id"
+          role="radio"
+          :aria-checked="prefs.tone === id"
+          :class="{ on: prefs.tone === id }"
+          :disabled="!prefs.enabled"
+          @click="pickTone(id)"
+        >{{ TONES[id].label }}</button>
+      </div>
+      <button class="play" :disabled="!prefs.enabled" @click="chime.play(prefs.tone)">▶ Play</button>
+    </div>
+
+    <div class="row" :class="{ dim: !prefs.enabled }">
+      <span class="lbl">
+        System notifications
+        <span class="sublbl">{{ PERMISSION_SAYS[permission] }}</span>
+      </span>
+      <button v-if="permission === 'default'" class="play" :disabled="!prefs.enabled" @click="allow">Allow</button>
+    </div>
+
     <div class="row" :class="{ dim: !prefs.enabled }">
       <span class="lbl">
         Invitations, mentions &amp; comments
@@ -74,7 +123,7 @@ function setTime(e: Event) {
       <span class="sublbl">{{ prefs.enabled ? CONFLICT_SAYS[prefs.conflicts] : CONFLICT_SAYS.quiet }}</span>
     </div>
   </div>
-  <p class="note">Snoozed items still come back when notifications are off; only the sound and the notice stop. Reminders run while Notevra is open.</p>
+  <p class="note">Snoozed items still come back when notifications are off; only the sound and the notice stop. Reminders run while Notevra is open, in one tab at a time. Snooze from the keyboard with ⌥S (Alt+S).</p>
 </template>
 
 <style scoped>
@@ -101,4 +150,7 @@ function setTime(e: Event) {
 .seg button { border: none; background: none; cursor: pointer; padding: 6px 12px; border-radius: 6px; font: 600 12px var(--font-ui); color: var(--ink-muted); }
 .seg button.on { background: var(--surface); color: var(--ink-body); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
 .seg button:disabled { cursor: default; opacity: 0.6; }
+.play { flex: none; border: 1px solid var(--border-strong); background: var(--surface); border-radius: var(--r-control); padding: 5px 11px; font: 600 12px var(--font-ui); color: var(--ink-body); cursor: pointer; }
+.play:hover:not(:disabled) { border-color: var(--border-hover); }
+.play:disabled { cursor: default; opacity: 0.5; }
 </style>

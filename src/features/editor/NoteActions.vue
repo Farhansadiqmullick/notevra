@@ -10,8 +10,10 @@
  */
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { noteService } from '@/services/note.service';
-import { SNOOZE_OPTIONS, shortWhen } from '@/core/editor/snooze';
+import { shortWhen } from '@/core/editor/snooze';
 import BaseButton from '@/components/primitives/BaseButton.vue';
+import SnoozeMenu from './SnoozeMenu.vue';
+import { useSnoozeShortcut } from './useSnoozeShortcut';
 import type { NoteRow } from '@/core/db/schema';
 
 const props = withDefaults(defineProps<{ note: NoteRow | undefined; compact?: boolean }>(), { compact: false });
@@ -23,6 +25,7 @@ function snooze(until: number | null) {
   if (props.note) noteService.updateProperties(props.note.id, { snoozedUntil: until ?? undefined });
   menu.value = null;
 }
+useSnoozeShortcut(() => !!props.note, () => (menu.value = 'snooze'));
 function moveToArchive() {
   if (props.note) noteService.archiveNote(props.note.id);
   menu.value = null;
@@ -45,9 +48,8 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocDown));
       <BaseButton size="sm" variant="bordered" @click="menu = menu === 'snooze' ? null : 'snooze'">
         {{ snoozedUntil ? `💤 ${shortWhen(snoozedUntil)}` : 'Snooze' }}
       </BaseButton>
-      <div v-if="menu === 'snooze'" class="menu">
-        <button v-for="opt in SNOOZE_OPTIONS" :key="opt.label" @click="snooze(opt.at())">{{ opt.label }}</button>
-        <button v-if="snoozedUntil" class="clear" @click="snooze(null)">Clear snooze</button>
+      <div v-if="menu === 'snooze'" class="menu snooze">
+        <SnoozeMenu :snoozed="!!snoozedUntil" @pick="snooze" @close="menu = null" />
       </div>
     </div>
 
@@ -72,6 +74,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocDown));
   box-shadow: var(--sh-modal, var(--sh-hairline));
 }
 .menu.end { inset-inline-start: auto; inset-inline-end: 0; }
+.menu.snooze { inline-size: 224px; }
 .menu button {
   display: block; inline-size: 100%; text-align: start; border: none; background: none; cursor: pointer;
   border-radius: var(--r-row); padding: 7px 9px; font: 500 12px var(--font-ui); color: var(--ink-secondary);

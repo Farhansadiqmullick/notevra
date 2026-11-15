@@ -69,6 +69,7 @@ export const noteService = {
       favorite: 0,
       deletedAt: null,
       updatedAt: Date.now(),
+      createdAt: Date.now(),
       version: 1,
       syncedVersion: 0, dirty: 1,  // brand-new row: the server has never seen it
     };

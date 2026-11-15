@@ -26,14 +26,20 @@ export interface Chime {
   /** Called on the first user gesture, so later playback is permitted. Safe to call repeatedly. */
   arm(): void;
   /** Best effort. Resolves whether or not a sound was actually heard. */
-  play(): Promise<void>;
+  play(tone?: ToneId): Promise<void>;
 }
 
-/** two soft notes, a rising fifth — noticeable across a room, not alarming */
-const NOTES: Array<{ hz: number; at: number; for: number }> = [
-  { hz: 660, at: 0, for: 0.16 },
-  { hz: 990, at: 0.14, for: 0.28 },
-];
+type Note = { hz: number; at: number; for: number };
+export type ToneId = 'chime' | 'bell' | 'soft' | 'ping';
+
+// each tone is a few notes, not a file, so a new one is a row here
+export const TONES: Record<ToneId, { label: string; wave: OscillatorType; notes: Note[] }> = {
+  chime: { label: 'Chime', wave: 'sine', notes: [{ hz: 660, at: 0, for: 0.16 }, { hz: 990, at: 0.14, for: 0.28 }] },
+  bell: { label: 'Bell', wave: 'triangle', notes: [{ hz: 880, at: 0, for: 0.7 }, { hz: 1320, at: 0, for: 0.45 }] },
+  soft: { label: 'Soft', wave: 'sine', notes: [{ hz: 523, at: 0, for: 0.24 }, { hz: 659, at: 0.16, for: 0.24 }, { hz: 784, at: 0.32, for: 0.4 }] },
+  ping: { label: 'Ping', wave: 'sine', notes: [{ hz: 1245, at: 0, for: 0.14 }] },
+};
+export const isToneId = (v: unknown): v is ToneId => typeof v === 'string' && v in TONES;
 
 const PEAK = 0.16; // quiet by default; this arrives uninvited
 
@@ -47,7 +53,8 @@ function audioCtor(): AudioCtor | null {
 /** Is there an audio stack at all? False in tests, in SSR, and in very old browsers. */
 export const canPlaySound = (): boolean => audioCtor() !== null;
 
-export function createChime(): Chime {
+// `tone` is read at play time, so changing it in Settings takes effect on the next reminder
+export function createChime(tone: () => ToneId = () => 'chime'): Chime {
   let ctx: AudioContext | null = null;
 
   /**
@@ -74,7 +81,7 @@ export function createChime(): Chime {
       void context()?.resume().catch(() => undefined);
     },
 
-    async play() {
+    async play(override?: ToneId) {
       const audio = context();
       if (!audio) return;
       try {
@@ -82,11 +89,12 @@ export function createChime(): Chime {
         // background, system audio taken by something else), not only before the first gesture
         if (audio.state === 'suspended') await audio.resume();
 
+        const t = TONES[override ?? tone()] ?? TONES.chime;
         const start = audio.currentTime;
-        for (const note of NOTES) {
+        for (const note of t.notes) {
           const osc = audio.createOscillator();
           const gain = audio.createGain();
-          osc.type = 'sine';
+          osc.type = t.wave;
           osc.frequency.value = note.hz;
 
           // a ramp, not a switch: an oscillator gated on and off clicks audibly at both ends

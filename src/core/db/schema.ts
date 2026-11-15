@@ -119,6 +119,8 @@ export interface NoteRow {
   /** set while an undelete is unsent, so it goes up as Restore*; local-only, unindexed */
   restoring?: 0 | 1;
   updatedAt: number;
+  /** when the page was made; local-only and unindexed, missing on pages from before it was kept */
+  createdAt?: number;
 
   /* --- sync state (see SyncFields above) --- */
   version: number;

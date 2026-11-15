@@ -1,68 +1,70 @@
 <script setup lang="ts">
-/**
- * Today — an index of the pages you changed today.
- *
- * It is a LIST OF LINKS and nothing else. Every other list in this app is made of the real rows it
- * shows, so editing them there edits them where they live; this one is made of pages, and a page is
- * not something you can tick, check or type into from a summary. Clicking a row opens that page
- * inside its project, which is the only thing a row here does.
- *
- * That read-only-ness is why this is its own component rather than a branch inside SmartListPage:
- * that one is built on ArchiveRow and DetailPane and an open/all/done filter, all of which assume
- * rows you can act on. Reusing it would have meant disabling most of it.
- */
-import { computed } from 'vue';
-import { useChangedToday } from '@/composables/useChangedToday';
-import TypeGlyph from '@/components/primitives/TypeGlyph.vue';
+// Today and its history: pages changed in a period, or a month calendar. Rows only open their page.
+import { computed, ref } from 'vue';
+import { useChanges } from '@/composables/useChanges';
+import { rangeFor, type Period } from '@/core/history/changes';
+import ChangedList from './ChangedList.vue';
+import HistoryCalendar from './HistoryCalendar.vue';
 
-/**
- * Opening a page is EMITTED, not done here.
- *
- * Calling `ui.selectNote()` directly sets the active note and changes nothing on screen: App.vue
- * renders whichever smart list is active in preference to a note, so the row would highlight
- * something the view was still covering up. `App.selectNote` is the one that also clears
- * `activeSmartList` — leaving the list is half of going to the page.
- */
+// emitted, not ui.selectNote: App.selectNote also leaves this view, which is half of opening the page
 const emit = defineEmits<{ select: [id: string] }>();
 
-const { pages } = useChangedToday();
+type View = Period | 'calendar';
+const views: { id: View; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: 'week', label: 'Last 7 days' },
+  { id: 'month', label: 'Last 30 days' },
+  { id: 'calendar', label: 'Calendar' },
+];
+const view = ref<View>('today');
 
-/** "14:32" — the time of day, because everything in this list is from today by definition */
-const at = (ms: number) =>
-  new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const { pages } = useChanges(() => rangeFor(view.value === 'calendar' ? 'today' : view.value));
+const isToday = computed(() => view.value === 'today');
+const past = computed(() => view.value !== 'today');
 
-const count = computed(() => pages.value.length);
+const blurb = computed(() =>
+  isToday.value
+    ? 'The pages you changed today, most recent first. Open one to work in it.'
+    : view.value === 'calendar'
+      ? 'Pick a day to see which pages changed. Darker days had more changes.'
+      : 'A look back at the pages you created or changed. Open one to work in it.',
+);
+const emptyText = computed(() =>
+  isToday.value ? 'Nothing changed today yet. Anything you write or rename will show up here.' : 'No pages changed in this period.',
+);
 </script>
 
 <template>
   <div class="page">
     <header class="bar">
       <nav class="crumb"><span class="cr-cur">Today</span></nav>
-      <span class="smartchip">Smart list</span>
+      <span class="smartchip">{{ past ? 'History' : 'Smart list' }}</span>
       <div class="spacer" />
     </header>
 
     <div class="body">
-      <h1 class="h">Today</h1>
-      <p class="blurb">
-        The pages you changed today, most recent first. Open one to work in it.
-      </p>
+      <h1 class="h">{{ views.find((v) => v.id === view)?.label }}</h1>
+      <p class="blurb">{{ blurb }}</p>
 
-      <p v-if="!count" class="empty">
-        Nothing changed today yet. Anything you write or rename will show up here.
-      </p>
+      <div class="tabs" role="tablist" aria-label="Period">
+        <button
+          v-for="v in views"
+          :key="v.id"
+          type="button"
+          role="tab"
+          class="tab"
+          :class="{ on: view === v.id }"
+          :aria-selected="view === v.id"
+          @click="view = v.id"
+        >{{ v.label }}</button>
+      </div>
 
-      <ul v-else class="list">
-        <li v-for="p in pages" :key="p.id">
-          <button type="button" class="row" @click="emit('select', p.id)">
-            <TypeGlyph :type="p.type" :size="16" />
-            <span class="title">{{ p.title }}</span>
-            <!-- the project, so the row says where it will take you before you click it -->
-            <span class="space">{{ p.space }}</span>
-            <span class="when">{{ at(p.changedAt) }}</span>
-          </button>
-        </li>
-      </ul>
+      <HistoryCalendar v-if="view === 'calendar'" @select="emit('select', $event)" />
+      <template v-else>
+        <p v-if="!pages.length" class="empty">{{ emptyText }}</p>
+        <ChangedList v-else :pages="pages" :group-by="view === 'week' || view === 'month' ? 'day' : 'none'" @select="emit('select', $event)" />
+      </template>
     </div>
   </div>
 </template>
@@ -76,22 +78,17 @@ const count = computed(() => pages.value.length);
 
 .body { flex: 1; overflow-y: auto; padding: 28px 32px 40px; max-inline-size: 760px; }
 .h { font: 800 26px var(--font-ui); color: var(--ink); margin: 0 0 6px; }
-.blurb { font: 400 13px/1.6 var(--font-ui); color: var(--ink-muted); margin: 0 0 22px; }
+.blurb { font: 400 13px/1.6 var(--font-ui); color: var(--ink-muted); margin: 0 0 16px; }
 .empty { font: 400 13px/1.7 var(--font-ui); color: var(--ink-ghost); margin: 0; }
 
-.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.row {
-  display: flex; align-items: center; gap: 10px; inline-size: 100%;
-  padding: 9px 12px; border: none; border-radius: var(--r-row);
-  background: transparent; cursor: pointer; text-align: start;
-}
-.row:hover { background: var(--surface-muted); }
-.title { flex: 1; min-inline-size: 0; font: 600 13.5px var(--font-ui); color: var(--ink-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.space { font: 600 10px var(--font-ui); letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); flex: none; }
-.when { font: 500 11.5px 'JetBrains Mono', monospace; color: var(--ink-ghost); flex: none; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-block-end: 20px; padding: 3px; border: 1px solid var(--border); border-radius: var(--r-control); background: var(--surface-sunken); inline-size: fit-content; max-inline-size: 100%; }
+.tab { border: none; background: none; border-radius: var(--r-row); padding: 6px 11px; font: 600 12px var(--font-ui); color: var(--ink-muted); cursor: pointer; white-space: nowrap; }
+.tab:hover { color: var(--ink-body); }
+.tab.on { background: var(--surface); color: var(--accent-deep); box-shadow: var(--sh-hairline); }
 
 @media (max-width: 900px) {
-  .body { padding: 20px 16px 32px; }
-  .space { display: none; } /* the title and the time are what fit under a thumb */
+  .body { padding: 20px 16px calc(96px + env(safe-area-inset-bottom)); }
+  /* five tabs don't fit a phone; they scroll sideways instead of wrapping into two rows */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; inline-size: auto; }
 }
 </style>
