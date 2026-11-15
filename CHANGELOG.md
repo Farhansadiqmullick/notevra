@@ -5,6 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com); versions follow [SemVer]
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-11-15
+
+### Added
+- Today looks back: Yesterday, Last 7 days, Last 30 days, and a calendar of which pages changed each day. Click a day to see them, grouped Personal and project.
+- Snooze to a date and time you pick, and snooze from the keyboard with ⌥S (Alt+S).
+- Choose a reminder sound in Settings → Notifications: Chime, Bell, Soft or Ping.
+- Reminders also show as system notifications when Notevra is in the background.
+
+### Changed
+- Inbox is now Temp note: a scratch page you can keep as a Planning, Archive or Blank page.
+- Mobile tabs are Notes · Today · Search · Me.
+- Search finds pages and items. Add blocks with "/" or "Add a block".
+
+### Fixed
+- Opening an Archive item from search selects that item instead of the one you had open.
+- With Notevra open in two tabs, a reminder plays once.
+
 ## [1.0.0] — 2026-11-14
 
 The first stable release. Offline first, Sync Later.
