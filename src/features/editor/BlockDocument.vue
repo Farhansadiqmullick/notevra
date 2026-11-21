@@ -6,6 +6,7 @@ import { useDocClipboard } from './document/useDocClipboard';
 import { useDocSelection } from './document/useDocSelection';
 import { useBlockSelect } from './document/useBlockSelect';
 import { useBlockDrag } from './document/useBlockDrag';
+import { useArrowNav } from './document/arrowNav';
 import { SIZEABLE, colorOf, colorStyle, sizeOf } from './document/useBlockLook';
 import BlockControls from './document/BlockControls.vue';
 import SelectionToolbar from './document/SelectionToolbar.vue';
@@ -49,10 +50,12 @@ const selectedInOrder = computed(() => order.value.filter((id) => selected.value
 const { copied, copySelection, duplicateSelection, pasteMenu, choosePaste } = useDocClipboard(props, selectedInOrder);
 const docRoot = ref<HTMLElement | null>(null);
 const { boldOn, strikeOn, canMark, markSelection } = useDocSelection(docRoot, props, order, selectedInOrder);
-const { hasSelection, onRowClick, onTouchStart, clearHold, deleteSelection, selectOnly } =
+const { hasSelection, onRowClick, onRowContextMenu, onTouchStart, clearHold, deleteSelection, selectOnly } =
   useBlockSelect(props, order, selectedInOrder, copySelection);
 const { draggingId, overId, dropMode, touchPos, onDragStart, onDragOver, onDrop, onHandleTouchStart, endDrag } =
   useBlockDrag(props, locked, selectedInOrder, clearHold);
+// edit mode (✎) dims every other block, so the arrows stay inside the one being edited
+useArrowNav(docRoot, () => locked.value);
 
 function copyOne(b: BlockRow) {
   ui.selectedBlockIds = [b.id];
@@ -104,6 +107,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocMouseDown));
         selected: selected.includes(b.id),
       }"
       @click="onRowClick(b, $event)"
+      @contextmenu="onRowContextMenu(b, $event)"
       @dblclick="onRowDblClick(b)"
       @touchstart.passive="onTouchStart(b)"
       @touchend="clearHold"
@@ -181,10 +185,12 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocMouseDown));
 </template>
 
 <style scoped>
-.doc-blocks { display: flex; flex-direction: column; }
+/* room above and below each block's text, so a ⌘/Ctrl+click can land on the row rather than the words */
+.doc-blocks { display: flex; flex-direction: column; gap: 2px; }
 .blk {
+  --row-pad: 3px;
   position: relative; display: flex; align-items: flex-start; gap: 4px;
-  border-radius: var(--r-row); padding-inline-end: 4px;
+  border-radius: var(--r-row); padding-block: var(--row-pad); padding-inline-end: 4px;
   transition: opacity 120ms ease-out, background-color 160ms ease-out, box-shadow 160ms ease-out;
 }
 .blk.dragging { opacity: 0.4; }
@@ -195,10 +201,10 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocMouseDown));
 .blk.editing { box-shadow: 0 0 0 1.5px var(--accent); background: var(--surface); }
 .blk.dimmed { opacity: 0.4; pointer-events: none; }
 
-/* multi-select: a light wash plus a thin edge, so long selections stay readable */
+/* multi-select: a clear wash and an accent edge, so every marked row is obvious */
 .blk.selected {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .blk.selected .handle { opacity: 1; color: var(--accent); }
 .select-mode .blk { cursor: pointer; }
@@ -255,7 +261,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocMouseDown));
 .blk:hover .handle { opacity: 1; }
 /* with a mouse the handle hangs in the left margin, so block text lines up with the page title */
 @media (hover: hover) {
-  .handle { position: absolute; inset-inline-start: -22px; inset-block-start: var(--line-top); margin: 0; inline-size: 22px; }
+  .handle { position: absolute; inset-inline-start: -22px; inset-block-start: calc(var(--line-top) + var(--row-pad)); margin: 0; inline-size: 22px; }
 }
 /* touch devices never hover: keep the handle visible, and give it a real finger-sized target */
 @media (hover: none) {

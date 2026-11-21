@@ -33,8 +33,8 @@ export function useDocSelection(
       const text = t.textContent ?? '';
       const selected = window.getSelection()?.toString().length ?? 0;
       if (text && selected < text.length) return;
-    } else if (t !== document.body && !inDoc) {
-      return; // search boxes, the sidebar, a title field
+    } else if (!inDoc && (t?.isContentEditable || t?.closest('input, textarea, select'))) {
+      return; // search boxes and title fields keep ⌘A for their own text
     }
     if (!order.value.length) return;
     e.preventDefault();

@@ -2,6 +2,7 @@
 import { computed, watch, onMounted, onUnmounted, type ComputedRef } from 'vue';
 import { useUiStore } from '@/stores/ui.store';
 import { deleteWithUndo } from '@/composables/useUndoableDelete';
+import { IS_MAC } from '@/utils/platform';
 import type { BlockRow } from '@/core/db/schema';
 
 export function useBlockSelect(
@@ -25,6 +26,11 @@ export function useBlockSelect(
       e.preventDefault();
       ui.toggleSelected(b.id); // mobile: after a long-press, plain taps select
     }
+  }
+
+  // on a Mac, Ctrl+click arrives as a right-click with no click event, so it marks from here
+  function onRowContextMenu(b: BlockRow, e: MouseEvent) {
+    if (IS_MAC && e.ctrlKey) onRowClick(b, e);
   }
 
   /** Mobile: press-and-hold a block (~600ms) turns on select mode and picks it. */
@@ -114,5 +120,5 @@ export function useBlockSelect(
   onMounted(() => window.addEventListener('keydown', onEscapeToSelect));
   onUnmounted(() => window.removeEventListener('keydown', onEscapeToSelect));
 
-  return { hasSelection, onRowClick, onTouchStart, clearHold, deleteSelection, selectOnly };
+  return { hasSelection, onRowClick, onRowContextMenu, onTouchStart, clearHold, deleteSelection, selectOnly };
 }

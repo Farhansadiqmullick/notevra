@@ -19,8 +19,8 @@ import { markdownToTasks } from '@/core/editor/pasteMarkdown';
 import { pasteIntoEmpty } from './pasteIntoEmpty';
 import AppIcon from '@/components/primitives/AppIcon.vue';
 
-const props = defineProps<{ block: BlockRow; selected?: boolean }>();
-const emit = defineEmits<{ toggle: []; select: []; delete: [] }>();
+const props = defineProps<{ block: BlockRow; selected?: boolean; marked?: boolean }>();
+const emit = defineEmits<{ toggle: []; select: []; delete: []; mark: [e: MouseEvent] }>();
 const { save, addAfter, removeSelf, editable } = useBlockEdit(props.block.id, props.block.noteId);
 const ui = useUiStore();
 const { roleForNote } = useTagColors();
@@ -71,7 +71,21 @@ watch(
   { immediate: true },
 );
 
-function onTextClick() {
+// ⌘/Ctrl/Shift clicks, and taps in mobile select mode, mark rows instead of opening one
+const isMarkClick = (e: MouseEvent) => e.metaKey || e.ctrlKey || e.shiftKey || ui.selectMode;
+
+function onRowClick(e: MouseEvent) {
+  if (isMarkClick(e)) emit('mark', e);
+  else emit('select');
+}
+
+// with rows marked, Delete removes all of them (useBlockSelect), not just the focused one
+function onDeleteKey() {
+  if (!ui.selectedBlockIds.length) emit('delete');
+}
+
+function onTextClick(e: MouseEvent) {
+  if (isMarkClick(e)) return void emit('mark', e);
   if (!props.selected) {
     emit('select'); // first click: the row, not the words in it
     return;
@@ -117,14 +131,15 @@ const onPaste = (e: ClipboardEvent) => pasteIntoEmpty(e, props.block, markdownTo
 
 <template>
   <div
-    class="arow"
-    :class="{ selected, done: block.checked, editing }"
+    class="arow blk"
+    :class="{ selected, marked, done: block.checked, editing }"
+    :data-block-id="block.id"
     role="button"
     tabindex="0"
-    @click="emit('select')"
+    @click="onRowClick"
     @dblclick="onDblClick"
     @keydown.enter="emit('select')"
-    @keydown.delete.self.prevent="emit('delete')"
+    @keydown.delete.self.prevent="onDeleteKey"
     @keydown.escape="stopEditing()"
     @paste="onPaste"
   >
@@ -214,6 +229,11 @@ function capitalize(s: string) {
 /* the caret is the signal that typing will land — show it only when it will */
 .arow.editing .title { cursor: text; }
 .arow.selected .title { font-weight: 600; }
+/* marked for a group action: the same wash and edge as a marked block on a Single page */
+.arow.marked {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
 /*
  * Done text is DIMMED BY COLOUR, not by opacity, and the placeholder is dimmed with it.
  *

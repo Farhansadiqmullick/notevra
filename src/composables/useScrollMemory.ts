@@ -36,11 +36,12 @@ export function restoreScroll(el: Scrollable, top: number): () => void {
 export const rememberScroll = (key: string, top: number) => saved.set(key, top);
 export const savedScroll = (key: string) => saved.get(key) ?? 0;
 
-export function useScrollMemory(key: string, el: Ref<HTMLElement | null>) {
+/** @param restore false when the page opens somewhere specific, e.g. on a search hit */
+export function useScrollMemory(key: string, el: Ref<HTMLElement | null>, restore = true) {
   let cancel: (() => void) | undefined;
   onMounted(() => {
     const top = savedScroll(key);
-    if (el.value && top > 0) cancel = restoreScroll(el.value, top);
+    if (restore && el.value && top > 0) cancel = restoreScroll(el.value, top);
   });
   onBeforeUnmount(() => {
     cancel?.();

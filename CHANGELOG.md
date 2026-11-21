@@ -5,6 +5,21 @@ Format: [Keep a Changelog](https://keepachangelog.com); versions follow [SemVer]
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-11-22
+
+### Added
+- Move between blocks with ↑ and ↓ while typing: from a block's first or last line, the caret goes to the block above or below. Works on Blank and Planning pages, and between items in an Archive list.
+- Select several Archive items at once, as on a Blank or Planning page: Cmd/Ctrl-click, Shift-click, drag across rows, or Cmd/Ctrl+A. Copy, Duplicate, Bold, Strike and Delete work on the selection.
+- ↑ and ↓ step through an Archive list.
+
+### Changed
+- Selected blocks are clearly highlighted, and each block has a little room above and below so it's easier to click.
+- Cmd/Ctrl+A selects every block or item on the page unless you're typing in a text field.
+
+### Fixed
+- On a Mac, Ctrl-click selects a block, the same as Cmd-click.
+- Opening an Archive item from search scrolls the list to it, and a match inside the item's Content is shown and briefly highlighted.
+
 ## [1.1.0] — 2026-11-15
 
 ### Added
