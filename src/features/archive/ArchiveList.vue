@@ -10,8 +10,11 @@ import ArchiveRow from './ArchiveRow.vue';
 import type { BlockRow } from '@/core/db/schema';
 import { SORT_LABEL, type ArchiveFilter, type ArchiveSort } from '@/composables/useArchive';
 import { ago } from '@/utils/relativeTime';
-import { ref } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { useScrollMemory } from '@/composables/useScrollMemory';
+import { useUiStore } from '@/stores/ui.store';
+import { useArchiveMarks } from './useArchiveMarks';
+import SelectionToolbar from '@/features/editor/document/SelectionToolbar.vue';
 import AppIcon from '@/components/primitives/AppIcon.vue';
 
 const props = defineProps<{
@@ -37,8 +40,28 @@ const emit = defineEmits<{
   addItem: [];
 }>();
 
+const ui = useUiStore();
 const scroller = ref<HTMLElement | null>(null);
-useScrollMemory(props.noteId, scroller);
+// a search hit scrolls to its own item, so the remembered position would only fight it
+useScrollMemory(props.noteId, scroller, !ui.revealBlockId);
+
+const shown = computed(() => (props.filter === 'open' ? [...props.visibleItems, ...props.doneItems] : props.visibleItems));
+const marks = useArchiveMarks(props.noteId, scroller, shown);
+
+/** Brings a row into view; the row may not be drawn yet when its list has just loaded. */
+async function scrollToItem(id: string, focus = false) {
+  for (let i = 0; i < 20; i++) {
+    await nextTick();
+    const row = scroller.value?.querySelector<HTMLElement>(`[data-block-id="${id}"]`);
+    if (row) {
+      row.scrollIntoView({ block: 'nearest' });
+      if (focus) row.focus({ preventScroll: true });
+      return;
+    }
+    await new Promise((r) => requestAnimationFrame(r));
+  }
+}
+defineExpose({ scrollToItem });
 </script>
 
 <template>
@@ -74,7 +97,14 @@ useScrollMemory(props.noteId, scroller);
         :key="b.id"
         :block="b"
         :selected="b.id === selectedId"
+        :marked="ui.selectedBlockIds.includes(b.id)"
         @select="emit('select', b.id)"
+        @mark="(e) => marks.onRowClick(b, e)"
+        @contextmenu="marks.onRowContextMenu(b, $event)"
+        @touchstart.passive="marks.onTouchStart(b)"
+        @touchend="marks.clearHold"
+        @touchmove="marks.clearHold"
+        @touchcancel="marks.clearHold"
         @toggle="emit('toggle', b)"
         @delete="emit('delete', b)"
       />
@@ -103,12 +133,33 @@ useScrollMemory(props.noteId, scroller);
           :key="b.id"
           :block="b"
           :selected="b.id === selectedId"
+          :marked="ui.selectedBlockIds.includes(b.id)"
           @select="emit('select', b.id)"
+          @mark="(e) => marks.onRowClick(b, e)"
+          @contextmenu="marks.onRowContextMenu(b, $event)"
+          @touchstart.passive="marks.onTouchStart(b)"
+          @touchend="marks.clearHold"
+          @touchmove="marks.clearHold"
+          @touchcancel="marks.clearHold"
           @toggle="emit('toggle', b)"
           @delete="emit('delete', b)"
         />
       </template>
     </div>
+
+    <SelectionToolbar
+      v-if="marks.hasSelection.value"
+      :count="ui.selectedBlockIds.length"
+      :copied="marks.copied.value"
+      :can-mark="marks.canMark.value"
+      :bold-on="marks.boldOn.value"
+      :strike-on="marks.strikeOn.value"
+      @copy="marks.copySelection"
+      @duplicate="marks.duplicateSelection"
+      @mark="marks.markSelection"
+      @remove="marks.deleteSelection"
+      @done="ui.clearSelection()"
+    />
   </section>
 </template>
 
@@ -138,6 +189,8 @@ useScrollMemory(props.noteId, scroller);
 .caret { font-size: 10px; line-height: 1; }
 
 .scroll { flex: 1; overflow-y: auto; padding: 0 12px 16px; display: flex; flex-direction: column; gap: 5px; }
+/* a drag across rows marks them; the browser's own text highlight would only fight it */
+.scroll.drag-selecting { user-select: none; }
 
 .add {
   display: flex; align-items: center; gap: 11px;

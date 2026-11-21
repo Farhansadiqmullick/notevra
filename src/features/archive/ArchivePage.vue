@@ -24,6 +24,7 @@ import SyncDot from '@/components/primitives/SyncDot.vue';
 import { useSyncStore } from '@/stores/sync.store';
 import AppIcon from '@/components/primitives/AppIcon.vue';
 import { usePageHistory } from '@/composables/usePageHistory';
+import { useArchiveKeys } from './useArchiveKeys';
 
 const props = defineProps<{ noteId: string }>();
 const spaceName = useSpaceName(computed(() => props.noteId));
@@ -88,6 +89,31 @@ const pageActions = usePageActions(props.noteId, {
   blockIds: () => a.items.value.map((b) => b.id),
 });
 
+const list = ref<InstanceType<typeof ArchiveList> | null>(null);
+
+// the rows in the order they are drawn: under Open, the DONE group follows the list
+const drawnIds = () =>
+  (a.filter.value === 'open' ? [...a.visibleItems.value, ...a.doneItems.value] : a.visibleItems.value).map((b) => b.id);
+useArchiveKeys(drawnIds, () => a.selectedId.value, (id, mode) => {
+  a.select(id);
+  if (mode === 'edit') ui.setFocus(id); // the row opens for typing, caret at the end of its text
+  void list.value?.scrollToItem(id, mode === 'focus');
+});
+
+// a hit inside an item's Content: scroll to that line in the detail and flash it once
+async function flashLine(id: string) {
+  for (let i = 0; i < 30; i++) {
+    const el = document.querySelector<HTMLElement>(`.detail [data-block-id="${id}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center' });
+      const tint = getComputedStyle(document.documentElement).getPropertyValue('--accent-tint').trim();
+      el.animate([{ backgroundColor: tint }, { backgroundColor: tint, offset: 0.6 }, { backgroundColor: 'transparent' }], { duration: 1800, easing: 'ease-out' });
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
 // a search hit: select the list item it lives in, even if this page was already open on another
 watch(
   () => [ui.revealBlockId, a.items.value.length] as const,
@@ -100,6 +126,8 @@ watch(
     ui.revealBlockId = null;
     if (!a.visibleItems.value.some((b) => b.id === item.id)) a.filter.value = 'all';
     onSelect(item.id); // a search is an explicit pick, so a phone opens the detail too
+    void list.value?.scrollToItem(item.id);
+    if (target !== item.id) void flashLine(target);
   },
   { immediate: true },
 );
@@ -160,6 +188,7 @@ watchEffect(() => {
     <div class="body">
       <ArchiveList
         v-if="!isNarrow || !detailOpen"
+        ref="list"
         :note-id="noteId"
         :title="a.note.value?.title ?? ''"
         :updated-at="a.note.value?.updatedAt"
